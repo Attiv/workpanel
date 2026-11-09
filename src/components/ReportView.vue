@@ -7,7 +7,7 @@ import Icon from "./Icon.vue";
 import { state, toast } from "../store";
 import { escapeHtml, fmtDayShort, fmtDur, parseISO, weekdayName } from "../utils";
 import { locale, t } from "../i18n";
-import type { Report } from "../types";
+import type { Report, ReportLine } from "../types";
 
 type Lang = "zh" | "en" | "both";
 type Range = "day" | "week" | "custom";
@@ -124,6 +124,24 @@ async function copyLang(which: "zh" | "en") {
     const missing = which === "en" ? report.value.missingEn.length : 0;
     if (missing) toast(t("report.copyEnMissing", { n: missing }));
     else toast(t(which === "zh" ? "report.copiedZh" : "report.copiedEn"));
+  } catch {
+    toast(t("report.copyFail"), "err");
+  }
+}
+
+/** 点某一条的中文 / 英文行，只复制那一条的文字 */
+async function copyLine(line: ReportLine, which: "zh" | "en") {
+  if (which === "en" && !line.en) {
+    toast(t("report.lineNoEn"));
+    return;
+  }
+  // 刚拖选过文字就不要抢剪贴板
+  if (window.getSelection()?.toString().trim()) return;
+  const text = (which === "zh" ? line.text : line.en) ?? "";
+  try {
+    await navigator.clipboard.writeText(text);
+    const brief = text.length > 24 ? `${text.slice(0, 24)}…` : text;
+    toast(t("report.lineCopied", { text: brief }));
   } catch {
     toast(t("report.copyFail"), "err");
   }
@@ -305,11 +323,20 @@ async function print() {
           </div>
           <div v-for="(l, i) in g.lines" :key="i" class="line">
             <div class="l-body">
-              <div v-if="lang !== 'en'" class="l-zh">{{ l.text }}</div>
+              <div
+                v-if="lang !== 'en'"
+                class="l-zh copyable"
+                :title="t('report.lineCopyHint')"
+                @click="copyLine(l, 'zh')"
+              >
+                {{ l.text }}
+              </div>
               <div
                 v-if="lang !== 'zh'"
-                class="l-en"
+                class="l-en copyable"
                 :class="{ missing: lang === 'both' && !l.en }"
+                :title="t('report.lineCopyHint')"
+                @click="copyLine(l, 'en')"
               >
                 {{ l.en || (lang === "en" ? l.text : t("report.missingEn")) }}
               </div>
@@ -393,6 +420,7 @@ async function print() {
 .toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 7px;
   flex: none;
 }
@@ -485,6 +513,19 @@ async function print() {
 .l-body {
   flex: 1;
   min-width: 0;
+}
+
+.copyable {
+  cursor: copy;
+  border-radius: 3px;
+  transition:
+    background 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.copyable:hover {
+  background: var(--sunken);
+  box-shadow: 0 0 0 3px var(--sunken);
 }
 
 .l-zh {

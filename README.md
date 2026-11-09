@@ -59,6 +59,8 @@ Images are downscaled to 1600px on the longer edge before they reach the databas
 
 Pick a range (today / this week / custom) and a language (Chinese / English / bilingual) and the report appears as you go. **Copy Chinese** and **Copy English** each put a clean single-language Markdown block on the clipboard; you can also export `.md`, export `.html`, or print straight to PDF.
 
+Click a line to copy just that line — the Chinese line gives you the Chinese, the English line gives you the English. Useful when you only need one bullet for a standup note.
+
 Lines that have no English yet can be sent through **AI translate & polish**, which translates them and rewrites the result into report-ready English.
 
 Several entries on the same task collapse into one line: notes are split, de-duplicated, joined with `；` and clipped to 72 characters.
