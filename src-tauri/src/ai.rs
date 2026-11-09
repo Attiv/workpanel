@@ -62,11 +62,13 @@ pub async fn translate_batch(s: &Settings, texts: &[String]) -> Result<Vec<Strin
     if texts.is_empty() {
         return Ok(Vec::new());
     }
-    let system = "You translate terse software work-log lines from Chinese into concise professional English. \
-Keep technical terms, product names and numbers unchanged. Use past tense, no trailing period, at most 20 words. \
-Reply with a JSON object only: keys are the input numbers as strings, values are the English lines.";
+    let system = "You write the English side of a software engineer's daily report from terse Chinese work-log notes. \
+For each numbered line: translate it into English, then polish that English into natural, professional workplace language. \
+Keep every fact, technical term, product name and number unchanged; don't add anything the note doesn't imply. \
+Use past tense, no trailing period, at most 20 words. \
+Reply with a JSON object only: keys are the input numbers as strings, values are the polished English lines.";
 
-    let mut user = String::from("Translate each numbered line:\n");
+    let mut user = String::from("Translate and polish each numbered line:\n");
     for (i, t) in texts.iter().enumerate() {
         user.push_str(&format!("{}. {}\n", i + 1, t));
     }

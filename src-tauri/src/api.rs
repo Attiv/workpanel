@@ -435,6 +435,7 @@ pub fn write_temp_html(content: String) -> Result<String, String> {
 pub async fn translate_missing(
     app: AppHandle,
     texts: Vec<String>,
+    force: bool,
 ) -> Result<Vec<Translated>, String> {
     let settings = {
         let state = app.state::<AppState>();
@@ -456,8 +457,9 @@ pub async fn translate_missing(
                 )
                 .ok();
             match cached {
-                Some(en) => result.push(Translated { zh: t.clone(), en }),
-                None => pending.push(t.clone()),
+                // force = 重新润色：旧译文当没翻过，走一遍新提示词并覆盖缓存
+                Some(en) if !force => result.push(Translated { zh: t.clone(), en }),
+                _ => pending.push(t.clone()),
             }
         }
     }

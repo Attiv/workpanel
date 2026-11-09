@@ -57,7 +57,9 @@ Images are downscaled to 1600px on the longer edge before they reach the databas
 
 ### Report
 
-Pick a range (today / this week / custom) and a language (Chinese / English / bilingual) and the report appears as you go. Copy it, export `.md`, export `.html`, or print straight to PDF.
+Pick a range (today / this week / custom) and a language (Chinese / English / bilingual) and the report appears as you go. **Copy Chinese** and **Copy English** each put a clean single-language Markdown block on the clipboard; you can also export `.md`, export `.html`, or print straight to PDF.
+
+Lines that have no English yet can be sent through **AI translate & polish**, which translates them and rewrites the result into report-ready English.
 
 Several entries on the same task collapse into one line: notes are split, de-duplicated, joined with `；` and clipped to 72 characters.
 
@@ -83,7 +85,7 @@ There is also a `− 100% +` control at the bottom of the sidebar. Steps are 80 
 
 ### AI (optional)
 
-Only called when you hit **Translate** in the report or **Rewrite** in the entry dialog. Any OpenAI-compatible endpoint works:
+Only called when you hit **AI translate & polish** in the report or **Rewrite** in the entry dialog. Any OpenAI-compatible endpoint works:
 
 | Field | Example |
 | --- | --- |
@@ -160,7 +162,7 @@ src-tauri/src/
   db.rs                  schema, queries, snapshot, timer settlement
   api.rs                 Tauri commands
   report.rs              report aggregation and Markdown rendering
-  ai.rs                  OpenAI-compatible batch translate + single-line rewrite
+  ai.rs                  OpenAI-compatible batch translate & polish + single-line rewrite
   kanri.rs               Kanri import
   tests.rs               unit tests
 ```

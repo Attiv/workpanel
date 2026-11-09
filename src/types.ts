@@ -126,6 +126,8 @@ export interface ReportGroup {
 
 export interface Report {
   markdown: string;
+  markdownZh: string;
+  markdownEn: string;
   groups: ReportGroup[];
   totalMinutes: number;
   missingEn: string[];

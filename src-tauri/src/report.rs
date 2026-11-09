@@ -196,8 +196,13 @@ ORDER BY e.day, e.id
     }
 
     let markdown = render_markdown(&groups, d0, d1, lang, total);
+    // 复制按钮要能各自拿到纯中/纯英版本，所以两种都渲染好一起返回
+    let markdown_zh = render_markdown(&groups, d0, d1, "zh", total);
+    let markdown_en = render_markdown(&groups, d0, d1, "en", total);
     Ok(Report {
         markdown,
+        markdown_zh,
+        markdown_en,
         groups,
         total_minutes: total,
         missing_en: missing,

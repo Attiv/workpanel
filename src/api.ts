@@ -79,8 +79,8 @@ export const saveTextFile = (path: string, content: string) =>
 export const writeTempHtml = (content: string) =>
   invoke<string>("write_temp_html", { content });
 
-export const translateMissing = (texts: string[]) =>
-  invoke<{ zh: string; en: string }[]>("translate_missing", { texts });
+export const translateMissing = (texts: string[], force = false) =>
+  invoke<{ zh: string; en: string }[]>("translate_missing", { texts, force });
 
 export const polishText = (text: string) => invoke<string>("polish_text", { text });
 

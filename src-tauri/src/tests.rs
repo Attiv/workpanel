@@ -287,10 +287,18 @@ fn report_en_uses_cached_translation() {
     assert!(r.markdown.contains("# Daily report"));
     assert!(r.markdown.contains("- Fixed login (45m)"));
     assert!(r.markdown.contains("Total: 45m"));
+    // 复制按钮各自要纯中文 / 纯英文版本
+    assert!(r.markdown_zh.contains("修登录"));
+    assert!(r.markdown_zh.contains("合计"));
+    assert!(!r.markdown_zh.contains("Fixed login"));
+    assert!(r.markdown_en.contains("- Fixed login (45m)"));
+    assert!(!r.markdown_en.contains("修登录"));
 
     let both = report::build(&conn, "2026-11-09", "2026-11-09", "both").unwrap();
     assert!(both.markdown.contains("修登录"));
     assert!(both.markdown.contains("Fixed login"));
+    assert!(both.markdown_zh.contains("修登录"));
+    assert!(both.markdown_en.contains("Fixed login"));
 
     drop(conn);
     let _ = std::fs::remove_file(path);

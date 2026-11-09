@@ -161,6 +161,8 @@ pub struct ReportGroup {
 #[serde(rename_all = "camelCase")]
 pub struct Report {
     pub markdown: String,
+    pub markdown_zh: String,
+    pub markdown_en: String,
     pub groups: Vec<ReportGroup>,
     pub total_minutes: i64,
     pub missing_en: Vec<String>,

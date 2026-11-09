@@ -96,13 +96,19 @@ const lineCount = computed(() =>
 
 const aiReady = computed(() => !!state.snap?.settings.aiKey);
 
-async function translate() {
-  if (!report.value?.missingEn.length) return;
+async function translate(force = false) {
+  const r = report.value;
+  if (!r) return;
+  // force 用于「重新润色」：把整份日报的英文都过一遍，覆盖旧缓存
+  const texts = force
+    ? Array.from(new Set(r.groups.flatMap((g) => g.lines.map((l) => l.text))))
+    : r.missingEn;
+  if (!texts.length) return;
   translating.value = true;
   try {
-    await api.translateMissing(report.value.missingEn);
+    await api.translateMissing(texts, force);
     await load();
-    toast(t("report.translated"));
+    toast(t(force ? "report.repolished" : "report.translated"));
   } catch (e) {
     toast(String(e), "err");
   } finally {
@@ -110,11 +116,14 @@ async function translate() {
   }
 }
 
-async function copy() {
+async function copyLang(which: "zh" | "en") {
   if (!report.value) return;
+  const text = which === "zh" ? report.value.markdownZh : report.value.markdownEn;
   try {
-    await navigator.clipboard.writeText(report.value.markdown);
-    toast(t("report.copied"));
+    await navigator.clipboard.writeText(text);
+    const missing = which === "en" ? report.value.missingEn.length : 0;
+    if (missing) toast(t("report.copyEnMissing", { n: missing }));
+    else toast(t(which === "zh" ? "report.copiedZh" : "report.copiedEn"));
   } catch {
     toast(t("report.copyFail"), "err");
   }
@@ -247,7 +256,7 @@ async function print() {
         :class="{ primary: aiReady }"
         :disabled="translating || !aiReady"
         :title="aiReady ? t('report.aiTitle') : t('report.aiNeedKey')"
-        @click="translate"
+        @click="translate()"
       >
         <Icon name="sparkle" :size="12" />
         {{
@@ -256,7 +265,22 @@ async function print() {
             : t("report.aiTranslate", { n: report.missingEn.length })
         }}
       </button>
-      <button class="btn" @click="copy">{{ t("report.copy") }}</button>
+      <button
+        v-else-if="aiReady && lineCount && lang !== 'zh'"
+        class="btn"
+        :disabled="translating"
+        :title="t('report.repolishTitle')"
+        @click="translate(true)"
+      >
+        <Icon name="sparkle" :size="12" />
+        {{ translating ? t("report.translating") : t("report.repolish") }}
+      </button>
+      <button class="btn" :title="t('report.copyZhTitle')" @click="copyLang('zh')">
+        {{ t("report.copyZh") }}
+      </button>
+      <button class="btn" :title="t('report.copyEnTitle')" @click="copyLang('en')">
+        {{ t("report.copyEn") }}
+      </button>
       <button class="btn" @click="exportMd">{{ t("report.exportMd") }}</button>
       <button class="btn" @click="exportHtml">{{ t("report.exportHtml") }}</button>
       <button class="btn" @click="print">
