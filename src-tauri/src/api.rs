@@ -34,11 +34,23 @@ pub fn app_info(state: State<'_, AppState>) -> serde_json::Value {
     } else {
         None
     };
+    let modal = if cfg!(debug_assertions) {
+        std::env::var("WORKPANEL_MODAL").unwrap_or_default()
+    } else {
+        String::new()
+    };
+    let lang = if cfg!(debug_assertions) {
+        std::env::var("WORKPANEL_LANG").unwrap_or_default()
+    } else {
+        String::new()
+    };
     serde_json::json!({
         "dbPath": state.db_path,
         "version": env!("CARGO_PKG_VERSION"),
         "view": view,
-        "zoom": zoom
+        "zoom": zoom,
+        "lang": lang,
+        "modal": modal
     })
 }
 

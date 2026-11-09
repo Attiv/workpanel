@@ -8,7 +8,8 @@ import {
   startTask,
   state,
 } from "../store";
-import { fmtDayShort, fmtDur, shiftISO, weekdayZh, parseISO } from "../utils";
+import { fmtDayShort, fmtDur, shiftISO, weekdayName, parseISO } from "../utils";
+import { t } from "../i18n";
 import type { Project } from "../types";
 
 const selectedId = ref<number | null>(state.snap?.projects[0]?.id ?? null);
@@ -32,7 +33,7 @@ const days = computed(() => {
   const out: { iso: string; label: string; weekday: string }[] = [];
   for (let i = 6; i >= 0; i--) {
     const iso = shiftISO(state.date, -i);
-    out.push({ iso, label: fmtDayShort(iso), weekday: weekdayZh(parseISO(iso)) });
+    out.push({ iso, label: fmtDayShort(iso), weekday: weekdayName(parseISO(iso)) });
   }
   return out;
 });
@@ -72,11 +73,11 @@ function pick(p: Project) {
 <template>
   <section class="view">
     <header class="head">
-      <h1>项目</h1>
+      <h1>{{ t("proj.title") }}</h1>
       <span class="muted num">{{ state.snap?.projects.length || 0 }}</span>
       <div style="flex: 1"></div>
       <button class="btn primary" @click="openProjectModal()">
-        <Icon name="plus" :size="12" />项目
+        <Icon name="plus" :size="12" />{{ t("proj.new") }}
       </button>
     </header>
 
@@ -93,41 +94,43 @@ function pick(p: Project) {
           <span class="pname">{{ p.name }}</span>
           <span class="pnum num">{{ p.weekMinutes ? fmtDur(p.weekMinutes) : "—" }}</span>
         </button>
-        <p v-if="!state.snap?.projects.length" class="empty">还没有项目，先建一个。</p>
+        <p v-if="!state.snap?.projects.length" class="empty">{{ t("proj.empty") }}</p>
       </div>
 
       <div v-if="project" class="detail">
         <div class="d-head">
           <span class="dot" :style="{ background: project.color }"></span>
           <h2>{{ project.name }}</h2>
-          <button class="btn ghost icon" title="编辑项目" @click="openProjectModal(project)">
+          <button class="btn ghost icon" :title="t('proj.edit')" @click="openProjectModal(project)">
             <Icon name="edit" :size="13" />
           </button>
           <div style="flex: 1"></div>
-          <button class="btn" @click="openTaskModal(undefined, 'today')">＋ 任务</button>
+          <button class="btn" @click="openTaskModal(undefined, 'today')">
+            {{ t("proj.addTask") }}
+          </button>
         </div>
 
         <div class="metrics">
           <div class="metric">
-            <span>本周</span>
+            <span>{{ t("proj.week") }}</span>
             <b class="num">{{ fmtDur(project.weekMinutes) }}</b>
           </div>
           <div class="metric">
-            <span>今日</span>
+            <span>{{ t("proj.today") }}</span>
             <b class="num">{{ fmtDur(project.todayMinutes) }}</b>
           </div>
           <div class="metric">
-            <span>未完成</span>
+            <span>{{ t("proj.open") }}</span>
             <b class="num">{{ project.openTasks }}</b>
           </div>
           <div class="metric">
-            <span>累计</span>
+            <span>{{ t("proj.total") }}</span>
             <b class="num">{{ fmtDur(project.totalMinutes) }}</b>
           </div>
         </div>
 
         <div class="block">
-          <div class="block-title">近七天</div>
+          <div class="block-title">{{ t("proj.last7") }}</div>
           <div class="bars">
             <div v-for="b in bars" :key="b.iso" class="bcol" :title="`${b.label} ${fmtDur(b.minutes)}`">
               <div class="bfill-wrap">
@@ -140,16 +143,19 @@ function pick(p: Project) {
 
         <div class="block">
           <div class="block-title">
-            今天要做
-            <span v-if="!todayTasks.length" class="muted">没有排进今天的任务</span>
+            {{ t("proj.plannedToday") }}
+            <span v-if="!todayTasks.length" class="muted">{{ t("proj.nonePlanned") }}</span>
           </div>
           <div v-if="todayTasks.length" class="tasks">
-            <div v-for="t in todayTasks" :key="t.id" class="trow" @click="openTaskModal(t)">
+            <div v-for="task in todayTasks" :key="task.id" class="trow" @click="openTaskModal(task)">
               <span class="dot" :style="{ background: project.color }"></span>
-              <span class="tname">{{ t.title }}</span>
-              <span v-if="t.todayMinutes" class="num muted">{{ fmtDur(t.todayMinutes) }}</span>
-              <button class="play" title="开始计时" @click.stop="startTask(t)">
-                <Icon :name="state.snap?.timer?.taskId === t.id ? 'stop' : 'play'" :size="8" />
+              <span class="tname">{{ task.title }}</span>
+              <span v-if="task.todayMinutes" class="num muted">{{ fmtDur(task.todayMinutes) }}</span>
+              <button class="play" :title="t('proj.start')" @click.stop="startTask(task)">
+                <Icon
+                  :name="state.snap?.timer?.taskId === task.id ? 'stop' : 'play'"
+                  :size="8"
+                />
               </button>
             </div>
           </div>
@@ -157,25 +163,27 @@ function pick(p: Project) {
 
         <div class="block">
           <div class="block-title">
-            其他未完成
-            <span v-if="!openTasks.length" class="muted">都清空了</span>
+            {{ t("proj.otherOpen") }}
+            <span v-if="!openTasks.length" class="muted">{{ t("proj.allClear") }}</span>
           </div>
           <div v-if="openTasks.length" class="tasks">
-            <div v-for="t in openTasks" :key="t.id" class="trow" @click="openTaskModal(t)">
+            <div v-for="task in openTasks" :key="task.id" class="trow" @click="openTaskModal(task)">
               <span class="dot" :style="{ background: project.color }"></span>
-              <span class="tname">{{ t.title }}</span>
-              <span v-if="t.plannedDate" class="num muted">{{ fmtDayShort(t.plannedDate) }}</span>
+              <span class="tname">{{ task.title }}</span>
+              <span v-if="task.plannedDate" class="num muted">
+                {{ fmtDayShort(task.plannedDate) }}
+              </span>
             </div>
           </div>
         </div>
 
         <button class="all" @click="setView('tasks')">
-          在任务列表里看全部<Icon name="arrow" :size="12" />
+          {{ t("proj.seeAll") }}<Icon name="arrow" :size="12" />
         </button>
       </div>
 
       <div v-else class="detail empty-detail">
-        <p>选左边的项目，或者新建一个。</p>
+        <p>{{ t("proj.pick") }}</p>
       </div>
     </div>
   </section>

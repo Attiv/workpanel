@@ -1,3 +1,5 @@
+import { locale, t } from "./i18n";
+
 export const pad = (n: number) => String(n).padStart(2, "0");
 
 export function todayISO(): string {
@@ -37,14 +39,32 @@ export function fmtClock(ms: number): string {
 }
 
 const WEEK_ZH = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+const WEEK_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_EN = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
-export function weekdayZh(d: Date): string {
-  return WEEK_ZH[d.getDay()];
+export function weekdayName(d: Date): string {
+  return locale.value === "en" ? WEEK_EN[d.getDay()] : WEEK_ZH[d.getDay()];
 }
 
 export function fmtDay(iso: string): string {
   const d = parseISO(iso);
-  return `${d.getMonth() + 1}月${d.getDate()}日 ${weekdayZh(d)}`;
+  if (locale.value === "en") {
+    return `${WEEK_EN[d.getDay()]}, ${MONTH_EN[d.getMonth()]} ${d.getDate()}`;
+  }
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${WEEK_ZH[d.getDay()]}`;
 }
 
 export function fmtDayShort(iso: string): string {
@@ -54,14 +74,13 @@ export function fmtDayShort(iso: string): string {
 
 export function dueLabel(due: string | null, date: string): string {
   if (!due) return "";
-  const diff = Math.round(
-    (parseISO(due).getTime() - parseISO(date).getTime()) / 86400000,
-  );
-  if (diff < 0) return `逾期 ${Math.abs(diff)} 天`;
-  if (diff === 0) return "今天到期";
-  if (diff === 1) return "明天到期";
-  if (diff < 7) return `${weekdayZh(parseISO(due))}到期`;
-  return `${parseISO(due).getMonth() + 1}/${parseISO(due).getDate()} 到期`;
+  const target = parseISO(due);
+  const diff = Math.round((target.getTime() - parseISO(date).getTime()) / 86400000);
+  if (diff < 0) return t("date.overdue", { n: Math.abs(diff) });
+  if (diff === 0) return t("date.dueToday");
+  if (diff === 1) return t("date.dueTomorrow");
+  if (diff < 7) return t("date.dueWeekday", { d: weekdayName(target) });
+  return t("date.dueOn", { m: target.getMonth() + 1, d: target.getDate() });
 }
 
 export function isOverdue(due: string | null, date: string): boolean {

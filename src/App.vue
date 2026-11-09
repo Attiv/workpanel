@@ -10,9 +10,20 @@ import TaskDialog from "./components/TaskDialog.vue";
 import EntryDialog from "./components/EntryDialog.vue";
 import ProjectDialog from "./components/ProjectDialog.vue";
 import Icon from "./components/Icon.vue";
-import { closeModal, refresh, setView, state, stopTimerFlow, type View } from "./store";
+import {
+  closeModal,
+  openEntryModal,
+  openProjectModal,
+  openTaskModal,
+  refresh,
+  setView,
+  state,
+  stopTimerFlow,
+  type View,
+} from "./store";
 import * as api from "./api";
 import { fmtClock } from "./utils";
+import { setLocale, t } from "./i18n";
 import { applyZoom, zoomIn, zoomOut, zoomReset } from "./zoom";
 
 const views = {
@@ -57,6 +68,10 @@ onMounted(async () => {
     const info = await api.appInfo();
     if (info.view && info.view in views) setView(info.view as View);
     if (info.zoom) await applyZoom(info.zoom, false);
+    if (info.lang === "zh" || info.lang === "en") setLocale(info.lang);
+    if (info.modal === "task") openTaskModal();
+    else if (info.modal === "entry") openEntryModal();
+    else if (info.modal === "project") openProjectModal();
   } catch {
     /* ignore */
   }
@@ -76,11 +91,11 @@ onBeforeUnmount(() => {
     <Sidebar />
 
     <main class="main">
-      <div v-if="state.loading" class="loading">正在打开面板…</div>
+      <div v-if="state.loading" class="loading">{{ t("app.loading") }}</div>
       <div v-else-if="state.error" class="failure">
-        <p class="failure-title">数据没能读出来</p>
+        <p class="failure-title">{{ t("app.errorTitle") }}</p>
         <pre class="failure-msg">{{ state.error }}</pre>
-        <button class="btn" @click="refresh">重试</button>
+        <button class="btn" @click="refresh">{{ t("app.retry") }}</button>
       </div>
       <component :is="current" v-else />
     </main>
@@ -89,11 +104,11 @@ onBeforeUnmount(() => {
       <div v-if="timer" class="timer">
         <span class="live-dot"></span>
         <div class="t-text">
-          <b>{{ timer.projectName || "未归类" }}</b>
-          <span>{{ timer.taskTitle || timer.note || "计时中" }}</span>
+          <b>{{ timer.projectName || t("common.unassigned") }}</b>
+          <span>{{ timer.taskTitle || timer.note || t("app.tracking") }}</span>
         </div>
         <span class="clock num">{{ fmtClock(elapsed) }}</span>
-        <button class="stop" title="停止并记录" @click="stopTimerFlow()">
+        <button class="stop" :title="t('app.stopAndLog')" @click="stopTimerFlow()">
           <Icon name="stop" :size="10" />
         </button>
       </div>
@@ -101,8 +116,8 @@ onBeforeUnmount(() => {
 
     <div class="toasts">
       <TransitionGroup name="toast">
-        <div v-for="t in state.toasts" :key="t.id" class="toast" :class="t.kind">
-          {{ t.text }}
+        <div v-for="item in state.toasts" :key="item.id" class="toast" :class="item.kind">
+          {{ item.text }}
         </div>
       </TransitionGroup>
     </div>

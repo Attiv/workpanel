@@ -5,7 +5,8 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import * as api from "../api";
 import Icon from "./Icon.vue";
 import { state, toast } from "../store";
-import { escapeHtml, fmtDay, fmtDayShort, fmtDur, parseISO, weekdayZh } from "../utils";
+import { escapeHtml, fmtDayShort, fmtDur, parseISO, weekdayName } from "../utils";
+import { locale, t } from "../i18n";
 import type { Report } from "../types";
 
 type Lang = "zh" | "en" | "both";
@@ -74,9 +75,19 @@ onMounted(() => {
   load();
 });
 
+/** 报告正文的语言跟「语言」选择走，界面语言只影响按钮和标签 */
+const docLang = computed<"zh" | "en">(() => (lang.value === "en" ? "en" : "zh"));
+
+const docTitle = computed(() => {
+  if (lang.value === "zh") return t("report.docZh");
+  if (lang.value === "en") return t("report.docEn");
+  return locale.value === "en" ? t("report.docEn") : t("report.docZh");
+});
+
 const heading = computed(() => {
-  if (d0.value === d1.value) return `${d0.value} ${weekdayZh(parseISO(d0.value))}`;
-  return `${fmtDayShort(d0.value)} 至 ${fmtDayShort(d1.value)}`;
+  if (d0.value === d1.value) return `${d0.value} ${weekdayName(parseISO(d0.value))}`;
+  const sep = docLang.value === "en" ? " – " : " 至 ";
+  return `${fmtDayShort(d0.value)}${sep}${fmtDayShort(d1.value)}`;
 });
 
 const lineCount = computed(() =>
@@ -91,7 +102,7 @@ async function translate() {
   try {
     await api.translateMissing(report.value.missingEn);
     await load();
-    toast("英文已补齐");
+    toast(t("report.translated"));
   } catch (e) {
     toast(String(e), "err");
   } finally {
@@ -103,9 +114,9 @@ async function copy() {
   if (!report.value) return;
   try {
     await navigator.clipboard.writeText(report.value.markdown);
-    toast("已复制 Markdown");
+    toast(t("report.copied"));
   } catch {
-    toast("复制失败，试试导出文件", "err");
+    toast(t("report.copyFail"), "err");
   }
 }
 
@@ -116,10 +127,11 @@ function buildHtml(): string {
     .map((g) => {
       const lines = g.lines
         .map((l) => {
-          const en =
-            lang.value !== "zh" && l.en
-              ? `<div class="en">${escapeHtml(l.en)}</div>`
-              : "";
+          if (lang.value === "en") {
+            const text = escapeHtml(l.en || l.text);
+            return `<div class="line"><div><div class="zh">${text}</div></div><div class="m">${fmtDur(l.minutes)}</div></div>`;
+          }
+          const en = lang.value === "both" && l.en ? `<div class="en">${escapeHtml(l.en)}</div>` : "";
           return `<div class="line"><div><div class="zh">${escapeHtml(l.text)}</div>${en}</div><div class="m">${fmtDur(l.minutes)}</div></div>`;
         })
         .join("");
@@ -127,7 +139,14 @@ function buildHtml(): string {
     })
     .join("");
 
-  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>工作日报 ${d0.value}</title>
+  const en = docLang.value === "en";
+  const title = en ? "Daily report" : "工作日报";
+  const sub = en
+    ? `${heading.value} · ${lineCount.value} lines · ${fmtDur(r.totalMinutes)} total`
+    : `${heading.value} · ${lineCount.value} 条 · 合计 ${fmtDur(r.totalMinutes)}`;
+  const foot = en ? `Total ${fmtDur(r.totalMinutes)}` : `合计 ${fmtDur(r.totalMinutes)}`;
+
+  return `<!doctype html><html lang="${en ? "en" : "zh-CN"}"><head><meta charset="utf-8"><title>${title} ${d0.value}</title>
 <style>
 body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;max-width:720px;margin:48px auto;padding:0 24px;color:#131922;line-height:1.6}
 h1{font-size:20px;font-weight:600;margin:0 0 4px}
@@ -142,32 +161,32 @@ h2 span{margin-left:auto;font-weight:500;color:#5b6573}
 .m{color:#5b6573;font-size:12px;white-space:nowrap;padding-top:2px}
 footer{margin-top:26px;padding-top:10px;border-top:1px solid #e1e6ed;font-size:13px;color:#5b6573}
 </style></head><body>
-<h1>${lang.value === "en" ? "Daily report" : "工作日报"}</h1>
-<div class="sub">${heading.value} · ${lineCount.value} 条 · 合计 ${fmtDur(r.totalMinutes)}</div>
+<h1>${title}</h1>
+<div class="sub">${sub}</div>
 ${sections}
-<footer>合计 ${fmtDur(r.totalMinutes)}</footer>
+<footer>${foot}</footer>
 </body></html>`;
 }
 
 async function exportMd() {
   if (!report.value) return;
   const path = await save({
-    defaultPath: `日报-${d0.value}.md`,
+    defaultPath: `${t("report.filePrefix")}-${d0.value}.md`,
     filters: [{ name: "Markdown", extensions: ["md"] }],
   });
   if (!path) return;
   await api.saveTextFile(path, report.value.markdown);
-  toast("已导出 Markdown");
+  toast(t("report.exportedMd"));
 }
 
 async function exportHtml() {
   const path = await save({
-    defaultPath: `日报-${d0.value}.html`,
+    defaultPath: `${t("report.filePrefix")}-${d0.value}.html`,
     filters: [{ name: "HTML", extensions: ["html"] }],
   });
   if (!path) return;
   await api.saveTextFile(path, buildHtml());
-  toast("已导出 HTML");
+  toast(t("report.exportedHtml"));
 }
 
 async function print() {
@@ -183,12 +202,18 @@ async function print() {
 <template>
   <section class="view">
     <header class="head">
-      <h1>日报</h1>
+      <h1>{{ t("report.title") }}</h1>
       <div style="flex: 1"></div>
       <div class="seg">
-        <button :class="{ on: range === 'day' }" @click="setRange('day')">今天</button>
-        <button :class="{ on: range === 'week' }" @click="setRange('week')">本周</button>
-        <button :class="{ on: range === 'custom' }" @click="setRange('custom')">自定义</button>
+        <button :class="{ on: range === 'day' }" @click="setRange('day')">
+          {{ t("report.day") }}
+        </button>
+        <button :class="{ on: range === 'week' }" @click="setRange('week')">
+          {{ t("report.week") }}
+        </button>
+        <button :class="{ on: range === 'custom' }" @click="setRange('custom')">
+          {{ t("report.custom") }}
+        </button>
       </div>
       <div v-if="range === 'custom'" class="dates">
         <input v-model="d0" type="date" class="input" />
@@ -199,13 +224,19 @@ async function print() {
 
     <div class="toolbar">
       <div class="seg">
-        <button :class="{ on: lang === 'zh' }" @click="lang = 'zh'">中文</button>
-        <button :class="{ on: lang === 'en' }" @click="lang = 'en'">English</button>
-        <button :class="{ on: lang === 'both' }" @click="lang = 'both'">双语</button>
+        <button :class="{ on: lang === 'zh' }" @click="lang = 'zh'">
+          {{ t("report.langZh") }}
+        </button>
+        <button :class="{ on: lang === 'en' }" @click="lang = 'en'">
+          {{ t("report.langEn") }}
+        </button>
+        <button :class="{ on: lang === 'both' }" @click="lang = 'both'">
+          {{ t("report.langBoth") }}
+        </button>
       </div>
 
       <span class="meta num">
-        {{ lineCount }} 条 · 合计 {{ fmtDur(report?.totalMinutes || 0) }}
+        {{ t("report.meta", { n: lineCount, total: fmtDur(report?.totalMinutes || 0) }) }}
       </span>
 
       <div style="flex: 1"></div>
@@ -215,30 +246,32 @@ async function print() {
         class="btn"
         :class="{ primary: aiReady }"
         :disabled="translating || !aiReady"
-        :title="aiReady ? '用 AI 补齐英文' : '先在设置里填 API Key'"
+        :title="aiReady ? t('report.aiTitle') : t('report.aiNeedKey')"
         @click="translate"
       >
         <Icon name="sparkle" :size="12" />
-        {{ translating ? "翻译中" : `AI 翻译 ${report.missingEn.length} 条` }}
+        {{
+          translating
+            ? t("report.translating")
+            : t("report.aiTranslate", { n: report.missingEn.length })
+        }}
       </button>
-      <button class="btn" @click="copy">复制</button>
-      <button class="btn" @click="exportMd">导出 .md</button>
-      <button class="btn" @click="exportHtml">导出 .html</button>
+      <button class="btn" @click="copy">{{ t("report.copy") }}</button>
+      <button class="btn" @click="exportMd">{{ t("report.exportMd") }}</button>
+      <button class="btn" @click="exportHtml">{{ t("report.exportHtml") }}</button>
       <button class="btn" @click="print">
-        <Icon name="printer" :size="12" />打印 / PDF
+        <Icon name="printer" :size="12" />{{ t("report.print") }}
       </button>
     </div>
 
     <div class="scroll">
       <article class="paper">
         <div class="p-head">
-          <h2>{{ lang === "en" ? "Daily report" : "工作日报" }}</h2>
+          <h2>{{ docTitle }}</h2>
           <div class="sub">{{ heading }}</div>
         </div>
 
-        <p v-if="!loading && !lineCount" class="empty">
-          这一天还没有记录。回到看板把任务拖进「今天」，或者补记一段时间。
-        </p>
+        <p v-if="!loading && !lineCount" class="empty">{{ t("report.empty") }}</p>
 
         <section v-for="g in report?.groups || []" :key="g.name" class="group">
           <div class="g-head">
@@ -248,16 +281,21 @@ async function print() {
           </div>
           <div v-for="(l, i) in g.lines" :key="i" class="line">
             <div class="l-body">
-              <div class="l-zh">{{ l.text }}</div>
-              <div v-if="lang !== 'zh' && l.en" class="l-en">{{ l.en }}</div>
-              <div v-else-if="lang !== 'zh' && !l.en" class="l-en missing">英文待补</div>
+              <div v-if="lang !== 'en'" class="l-zh">{{ l.text }}</div>
+              <div
+                v-if="lang !== 'zh'"
+                class="l-en"
+                :class="{ missing: lang === 'both' && !l.en }"
+              >
+                {{ l.en || (lang === "en" ? l.text : t("report.missingEn")) }}
+              </div>
             </div>
             <span class="l-min num">{{ fmtDur(l.minutes) }}</span>
           </div>
         </section>
 
         <div class="p-foot">
-          <span>合计</span>
+          <span>{{ t("report.total") }}</span>
           <b class="num">{{ fmtDur(report?.totalMinutes || 0) }}</b>
         </div>
       </article>

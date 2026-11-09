@@ -6,6 +6,7 @@ import Modal from "./Modal.vue";
 import { closeModal, deleteEntryFlow, saveEntryFlow, state, toast } from "../store";
 import { parseDuration, shiftISO } from "../utils";
 import type { Entry, Task } from "../types";
+import { t } from "../i18n";
 
 const props = defineProps<{ entry?: Entry; day?: string; task?: Task }>();
 
@@ -53,11 +54,11 @@ async function polish() {
 async function submit() {
   const minutes = parseDuration(minutesText.value);
   if (!projectId.value) {
-    error.value = "选一个项目";
+    error.value = t("dlg.errProject");
     return;
   }
   if (!minutes || minutes <= 0) {
-    error.value = "填个时长，比如 45m 或 1h30m";
+    error.value = t("dlg.errMinutes");
     return;
   }
   const ok = await saveEntryFlow({
@@ -84,33 +85,37 @@ async function remove() {
 </script>
 
 <template>
-  <Modal :title="isEdit ? '编辑记录' : '补记时间'" :width="470" @close="closeModal">
+  <Modal :title="isEdit ? t('dlg.entryEdit') : t('dlg.entryNew')" :width="470" @close="closeModal">
     <div class="field">
-      <span class="lab">项目</span>
+      <span class="lab">{{ t("dlg.project") }}</span>
       <select v-model="projectId" class="input">
         <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
       </select>
     </div>
 
     <div class="field">
-      <span class="lab">任务</span>
+      <span class="lab">{{ t("dlg.task") }}</span>
       <select v-model="taskId" class="input">
-        <option :value="null">不指定任务</option>
-        <option v-for="t in tasks" :key="t.id" :value="t.id">{{ t.title }}</option>
+        <option :value="null">{{ t("dlg.noTask") }}</option>
+        <option v-for="task in tasks" :key="task.id" :value="task.id">
+          {{ task.title }}
+        </option>
       </select>
     </div>
 
     <div class="field">
-      <span class="lab">日期</span>
+      <span class="lab">{{ t("dlg.date") }}</span>
       <div class="dates">
         <input v-model="day" type="date" class="input" />
-        <button class="chip-btn" @click="day = state.date">今天</button>
-        <button class="chip-btn" @click="day = shiftISO(state.date, -1)">昨天</button>
+        <button class="chip-btn" @click="day = state.date">{{ t("common.today") }}</button>
+        <button class="chip-btn" @click="day = shiftISO(state.date, -1)">
+          {{ t("common.yesterday") }}
+        </button>
       </div>
     </div>
 
     <div class="field">
-      <span class="lab">时长</span>
+      <span class="lab">{{ t("dlg.duration") }}</span>
       <div class="dates">
         <input
           v-model="minutesText"
@@ -126,18 +131,23 @@ async function remove() {
     </div>
 
     <label class="field">
-      <span class="lab">说明</span>
+      <span class="lab">{{ t("dlg.desc") }}</span>
       <div class="note-wrap">
         <textarea
           ref="noteEl"
           v-model="note"
           class="input"
           rows="3"
-          placeholder="这件事具体做了什么，日报会直接用它"
+          :placeholder="t('dlg.descPlaceholder')"
         />
-        <button class="ai" :disabled="busy || !note.trim()" title="用 AI 改写成日报口吻" @click.prevent="polish">
+        <button
+          class="ai"
+          :disabled="busy || !note.trim()"
+          :title="t('dlg.polishTitle')"
+          @click.prevent="polish"
+        >
           <Icon name="sparkle" :size="12" />
-          {{ busy ? "处理中" : "改写" }}
+          {{ busy ? t("dlg.polishing") : t("dlg.polish") }}
         </button>
       </div>
     </label>
@@ -146,11 +156,11 @@ async function remove() {
 
     <template #footer>
       <button v-if="isEdit" class="btn danger" @click="remove">
-        {{ confirmDelete ? "再点一次删除" : "删除" }}
+        {{ confirmDelete ? t("common.deleteAgain") : t("common.delete") }}
       </button>
       <div style="flex: 1"></div>
-      <button class="btn" @click="closeModal">取消</button>
-      <button class="btn primary" @click="submit">保存</button>
+      <button class="btn" @click="closeModal">{{ t("common.cancel") }}</button>
+      <button class="btn primary" @click="submit">{{ t("common.save") }}</button>
     </template>
   </Modal>
 </template>
@@ -158,7 +168,7 @@ async function remove() {
 <style scoped>
 .field {
   display: grid;
-  grid-template-columns: 46px 1fr;
+  grid-template-columns: 58px 1fr;
   align-items: center;
   gap: 10px;
   margin-bottom: 9px;
@@ -234,7 +244,7 @@ async function remove() {
 }
 
 .err {
-  margin: 2px 0 0 56px;
+  margin: 2px 0 0 68px;
   font-size: 11.5px;
   color: var(--danger);
 }

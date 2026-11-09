@@ -11,6 +11,7 @@ import type {
   TaskInput,
 } from "./types";
 import { shiftISO, todayISO } from "./utils";
+import { t } from "./i18n";
 
 export type View = "today" | "projects" | "tasks" | "report" | "settings";
 export type Column = "backlog" | "today" | "doing" | "done";
@@ -134,7 +135,7 @@ export async function stopTimerFlow(note?: string) {
   try {
     const entry = await api.stopTimer(note);
     await refresh();
-    if (entry) toast(`已记录 ${entry.minutes} 分钟`);
+    if (entry) toast(t("toast.minutes", { n: entry.minutes }));
   } catch (e) {
     toast(String(e), "err");
   }
@@ -144,7 +145,7 @@ export async function saveTaskFlow(input: TaskInput) {
   try {
     await api.saveTask(input);
     await refresh();
-    toast(input.id ? "任务已更新" : "任务已添加");
+    toast(t(input.id ? "toast.taskUpdated" : "toast.taskAdded"));
     return true;
   } catch (e) {
     toast(String(e), "err");
@@ -156,7 +157,7 @@ export async function deleteTaskFlow(id: number) {
   try {
     await api.deleteTask(id);
     await refresh();
-    toast("任务已删除");
+    toast(t("toast.taskDeleted"));
   } catch (e) {
     toast(String(e), "err");
   }
@@ -167,7 +168,7 @@ export async function saveEntryFlow(input: EntryInput) {
     if (input.id) await api.updateEntry(input);
     else await api.addEntry(input);
     await refresh();
-    toast(input.id ? "记录已更新" : "已记录");
+    toast(t(input.id ? "toast.entryUpdated" : "toast.entryAdded"));
     return true;
   } catch (e) {
     toast(String(e), "err");
@@ -179,7 +180,7 @@ export async function deleteEntryFlow(id: number) {
   try {
     await api.deleteEntry(id);
     await refresh();
-    toast("记录已删除");
+    toast(t("toast.entryDeleted"));
   } catch (e) {
     toast(String(e), "err");
   }
@@ -189,7 +190,7 @@ export async function saveProjectFlow(input: ProjectInput) {
   try {
     const id = await api.saveProject(input);
     await refresh();
-    toast(input.id ? "项目已更新" : "项目已创建");
+    toast(t(input.id ? "toast.projectUpdated" : "toast.projectAdded"));
     return id;
   } catch (e) {
     toast(String(e), "err");
@@ -201,7 +202,7 @@ export async function deleteProjectFlow(id: number) {
   try {
     await api.deleteProject(id);
     await refresh();
-    toast("项目已删除");
+    toast(t("toast.projectDeleted"));
   } catch (e) {
     toast(String(e), "err");
   }
@@ -211,7 +212,7 @@ export async function saveSettingsFlow(settings: Settings) {
   try {
     await api.saveSettings(settings);
     await refresh();
-    toast("设置已保存");
+    toast(t("toast.settingsSaved"));
   } catch (e) {
     toast(String(e), "err");
   }

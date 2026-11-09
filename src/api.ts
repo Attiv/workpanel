@@ -14,7 +14,14 @@ import type {
 export const snapshot = (date: string) => invoke<Snapshot>("snapshot", { date });
 
 export const appInfo = () =>
-  invoke<{ dbPath: string; version: string; view: string; zoom: number | null }>("app_info");
+  invoke<{
+    dbPath: string;
+    version: string;
+    view: string;
+    zoom: number | null;
+    lang: string;
+    modal: string;
+  }>("app_info");
 
 export const saveProject = (project: ProjectInput) =>
   invoke<number>("save_project", { project });

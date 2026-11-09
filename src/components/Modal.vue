@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted } from "vue";
 import Icon from "./Icon.vue";
+import { t } from "../i18n";
 
 const props = withDefaults(defineProps<{ title: string; width?: number }>(), { width: 460 });
 const emit = defineEmits<{ (e: "close"): void }>();
@@ -22,7 +23,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
       <div class="sheet" :style="{ width: props.width + 'px' }" role="dialog" aria-modal="true">
         <header class="sheet-head">
           <h2>{{ props.title }}</h2>
-          <button class="close" title="关闭" @click="emit('close')">
+          <button class="close" :title="t('common.close')" @click="emit('close')">
             <Icon name="close" :size="13" />
           </button>
         </header>

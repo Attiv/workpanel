@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import Modal from "./Modal.vue";
 import { closeModal, deleteProjectFlow, saveProjectFlow, state } from "../store";
 import type { Project } from "../types";
+import { t } from "../i18n";
 
 const props = defineProps<{ project?: Project }>();
 
@@ -30,7 +31,7 @@ onMounted(() => nameEl.value?.focus());
 
 async function submit() {
   if (!name.value.trim()) {
-    error.value = "给项目起个名字";
+    error.value = t("dlg.errName");
     return;
   }
   const list = aliases.value
@@ -59,21 +60,21 @@ async function remove() {
 </script>
 
 <template>
-  <Modal :title="isEdit ? '编辑项目' : '新项目'" :width="420" @close="closeModal">
+  <Modal :title="isEdit ? t('dlg.projEdit') : t('dlg.projNew')" :width="420" @close="closeModal">
     <div class="field">
-      <span class="lab">名称</span>
+      <span class="lab">{{ t("dlg.name") }}</span>
       <input
         ref="nameEl"
         v-model="name"
         class="input"
-        placeholder="项目名"
+        :placeholder="t('dlg.namePlaceholder')"
         @keydown.enter.prevent="submit"
         @input="error = ''"
       />
     </div>
 
     <div class="field">
-      <span class="lab">颜色</span>
+      <span class="lab">{{ t("dlg.color") }}</span>
       <div class="swatches">
         <button
           v-for="c in PALETTE"
@@ -87,19 +88,19 @@ async function remove() {
     </div>
 
     <div class="field">
-      <span class="lab">别名</span>
-      <input v-model="aliases" class="input" placeholder="用顿号或逗号分隔，导入时用" />
+      <span class="lab">{{ t("dlg.aliases") }}</span>
+      <input v-model="aliases" class="input" :placeholder="t('dlg.aliasesPlaceholder')" />
     </div>
 
     <p v-if="error" class="err">{{ error }}</p>
 
     <template #footer>
       <button v-if="isEdit" class="btn danger" @click="remove">
-        {{ confirmDelete ? "再点一次删除" : "删除" }}
+        {{ confirmDelete ? t("common.deleteAgain") : t("common.delete") }}
       </button>
       <div style="flex: 1"></div>
-      <button class="btn" @click="closeModal">取消</button>
-      <button class="btn primary" @click="submit">保存</button>
+      <button class="btn" @click="closeModal">{{ t("common.cancel") }}</button>
+      <button class="btn primary" @click="submit">{{ t("common.save") }}</button>
     </template>
   </Modal>
 </template>
@@ -107,7 +108,7 @@ async function remove() {
 <style scoped>
 .field {
   display: grid;
-  grid-template-columns: 46px 1fr;
+  grid-template-columns: 58px 1fr;
   align-items: center;
   gap: 10px;
   margin-bottom: 11px;
@@ -137,7 +138,7 @@ async function remove() {
 }
 
 .err {
-  margin: 2px 0 0 56px;
+  margin: 2px 0 0 68px;
   font-size: 11.5px;
   color: var(--danger);
 }

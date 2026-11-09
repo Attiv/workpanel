@@ -1,170 +1,182 @@
 # WorkPanel
 
-多项目并行时的任务面板 + 工时记录 + 中英日报生成器。本地优先，数据只存这台机器。
+A task board, a time tracker and a daily-report generator for people who run several projects at once. Local-first: everything lives in one SQLite file on your own machine.
 
-Tauri 2 + Vue 3 写的独立桌面应用，macOS / Windows 都能跑。没有账号、没有云同步、不联网（除非你自己开 AI 翻译）。
+Standalone desktop app built with Tauri 2 + Vue 3. Runs on macOS and Windows. No account, no cloud sync, no network access unless you switch on AI translation.
 
-![今天](docs/board.png)
+**English** · [中文说明](README.zh-CN.md)
 
-> 截图里是演示数据，不是真实项目。
+![Board](docs/board.png)
 
-## 解决什么问题
+> Screenshots use made-up demo data, not real projects.
 
-同时推进几个项目时，每天在项目之间来回切，任务常常要隔几天才做。WorkPanel 把这三件事放在一个画面里：
+## The problem
 
-- **任务按项目排** —— 待排 / 今天 / 进行中 / 完成四列，直接拖动卡片改计划
-- **工时自动记** —— 卡片上的计时器，或者事后补一条
-- **日报自动出** —— 按项目分组，一条任务一句话，中文 / 英文 / 双语
+When you juggle several projects, you switch between them all day and some tasks only get done days later. At the end of the day you still owe a report: what you did per project, how long it took, one or two sentences each.
 
-## 主要功能
+WorkPanel puts the three things in one window:
 
-### 今天（看板）
+- **Tasks organised by project** — four columns: Backlog / Today / Doing / Done. Drag a card to change the plan.
+- **Time logged as you go** — a timer on every card, or add an entry afterwards.
+- **A report that writes itself** — grouped by project, one line per task, Chinese / English / bilingual.
 
-四列拖拽：**待排 → 今天 → 进行中 → 完成**，任意两列之间都能拖。
+## Features
 
-- 拖到「今天」= 排进今天。从「进行中」拖回来会先结算正在跑的计时，卡片回到今天的待办列表。
-- 拖到「进行中」= 开始做，自动起计时；这个任务已经在计时就不再重复起。
-- 拖到「完成」= 标记完成并停表；已完成的卡片拖回「今天」会被重新打开。
-- 拖到「待排」= 取消排期，回到待排池。
+### Board
 
-每张卡片右下角有两个按钮（悬停显示）：**⏱ 手动补记** 和 **▶ 计时**。所以「这件事我忘了按开始」和「我现在就做」都能处理。
+Four columns, and you can drag cards between any two of them: **Backlog → Today → Doing → Done**.
 
-列的标题栏显示 `N 张 · 预计 Xh · 已记 Yh`，一眼看出今天的活是否排得下。
+- **Drop on Today** — plans the task for today. Dragging a card out of Doing first settles the running timer, then puts the card back in today's list.
+- **Drop on Doing** — starts work and the timer. If that task is already being timed, it won't start a second one.
+- **Drop on Done** — marks it done and stops the timer. Dragging a finished card back to Today reopens it.
+- **Drop on Backlog** — clears the planned date and returns it to the pool.
 
-### 项目
+Each card has two buttons on hover: **⏱ log time manually** and **▶ start timer**. So both "I forgot to hit start" and "I'm doing it right now" work.
 
-左侧项目列表按本周工时排序，右侧显示本周 / 今日 / 未完成 / 累计四个数字、近 7 天柱状图，以及这个项目今天要做的事。
+The column header shows `N · est 3h45m · logged 1h25m`, so you can see at a glance whether today's work actually fits.
 
-![项目](docs/projects.png)
+### Projects
 
-### 任务
+The list on the left is sorted by this week's hours. The right panel shows this week / today / open tasks / total hours, a 7-day bar chart, and what this project has planned for today.
 
-全部任务的表格视图，可按 全部 / 今天 / 进行中 / 已完成 过滤，支持按任务名或项目名搜索。
+![Projects](docs/projects.png)
 
-![任务](docs/tasks.png)
+### Tasks
 
-### 界面缩放
+A flat table of every task, filterable by All / Today / Doing / Done, searchable by task or project name.
 
-窗口最小 1040×640，字小的时候可以整界面放大，布局按比例走不会错位：
+![Tasks](docs/tasks.png)
 
-| 操作 | 快捷键 |
+### Report
+
+Pick a range (today / this week / custom) and a language (Chinese / English / bilingual) and the report appears as you go. Copy it, export `.md`, export `.html`, or print straight to PDF.
+
+Several entries on the same task collapse into one line: notes are split, de-duplicated, joined with `；` and clipped to 72 characters.
+
+![Report](docs/report.png)
+
+### Interface language
+
+The UI itself switches between Chinese and English. Use the `中 / EN` toggle at the top of the sidebar, or the language selector in Settings. The choice is remembered.
+
+This is independent of the report language: you can run the interface in English and still produce a Chinese report.
+
+### Zoom
+
+The window is 1040×640 minimum. When the text is too small, scale the whole interface:
+
+| Action | Shortcut |
 | --- | --- |
-| 放大 | `⌘ +` / `Ctrl +` |
-| 缩小 | `⌘ -` / `Ctrl -` |
-| 回到 100% | `⌘ 0` / `Ctrl 0` |
+| Zoom in | `⌘ +` / `Ctrl +` |
+| Zoom out | `⌘ -` / `Ctrl -` |
+| Back to 100% | `⌘ 0` / `Ctrl 0` |
 
-侧栏底部也有 `− 100% +` 三个按钮，档位是 80% / 90% / 100% / 110% / 125% / 140% / 160%，选择记在本地，下次打开还是这个大小。
+There is also a `− 100% +` control at the bottom of the sidebar. Steps are 80 / 90 / 100 / 110 / 125 / 140 / 160%, and the choice is remembered.
 
-### 日报
+### AI (optional)
 
-选时间范围（今天 / 本周 / 自定义）和语言（中文 / English / 双语），实时生成 Markdown 预览。可以复制、导出 `.md`、导出 `.html`、或直接打印成 PDF。
+Only called when you hit **Translate** in the report or **Rewrite** in the entry dialog. Any OpenAI-compatible endpoint works:
 
-同一任务的多次记录会合并成一行（说明去重后用「；」连接，最长 72 字）。
-
-![日报](docs/report.png)
-
-### AI（可选）
-
-只在你点「AI 翻译」或写说明时点「AI 改写」才会调用，用的是 OpenAI 兼容接口：
-
-| 字段 | 例子 |
+| Field | Example |
 | --- | --- |
-| 接口地址 | `https://api.deepseek.com/v1` |
-| 模型 | `deepseek-chat` |
-| API Key | `sk-...` |
+| Endpoint | `https://api.deepseek.com/v1` |
+| Model | `deepseek-chat` |
+| API key | `sk-...` |
 
-翻译结果按中文原文缓存进本地数据库，同一条说明不会重复翻译、重复计费。
+Translations are cached in the local database, keyed by the Chinese source text, so the same sentence is never translated — or paid for — twice.
 
-## 数据
+## Data
 
-全部数据在一个 SQLite 文件里：
+Everything is in one SQLite file:
 
-| 平台 | 路径 |
+| Platform | Path |
 | --- | --- |
 | macOS | `~/Library/Application Support/com.workpanel.desktop/workpanel.db` |
 | Windows | `%APPDATA%\com.workpanel.desktop\workpanel.db` |
 
-设置页里能看到实际路径。想备份就复制这个文件；想换机器就把它拷过去。
+The real path is shown in Settings. To back up, copy the file; to move machines, copy it across.
 
-数据库结构（4 张业务表）：
+Schema (four tables that matter):
 
-- `projects` — 项目名、颜色、别名（别名用来匹配 Kanri 里的项目前缀）
-- `tasks` — 标题、备注、状态、`planned_date`（拖到哪天）、`due_date`、预估、完成时间
-- `entries` — 工时事实表：哪天、哪个任务、多少分钟、做了什么。**工时只认这张表**，拖动卡片不会改工时
-- `translations` — 中文 → 英文的翻译缓存
+- `projects` — name, colour, aliases (aliases are used to match prefixes when importing from Kanri)
+- `tasks` — title, note, status, `planned_date` (the day you dragged it to), `due_date`, estimate, completion time
+- `entries` — the time facts: which day, which task, how many minutes, what you did. **Hours come from this table only**, so dragging cards never changes the report
+- `translations` — Chinese → English cache
 
-## 从 Kanri 导入
+## Import from Kanri
 
-设置页 → 「从 Kanri 导入任务」。只读 Kanri 的数据文件，不改它：
+Settings → **Import tasks from Kanri**. It reads Kanri's data file without modifying it:
 
-- macOS：`~/Library/Application Support/tech.trobonox.kanri/.kanri.dat`
-- Windows：`%APPDATA%\tech.trobonox.kanri\.kanri.dat`
+- macOS: `~/Library/Application Support/tech.trobonox.kanri/.kanri.dat`
+- Windows: `%APPDATA%\tech.trobonox.kanri\.kanri.dat`
 
-导入规则：
+Rules:
 
-- 卡片标题原样变成任务名，重名（标题完全相同）的跳过，可以重复导入
-- 卡片标题或描述里出现项目名 / 别名，就归到那个项目；没有则按标题第一个词归类
-- 列名含 done / 完成 / finished 的算已完成
-- `dueDate` 取前 10 位作为截止日
+- Card titles become task titles. Cards with an identical title are skipped, so re-importing is safe.
+- If a project name or alias appears in the title or description, the card joins that project; otherwise cards are grouped by the first word of their title (a group needs at least two cards to become a project).
+- Columns named done / 完成 / finished are treated as completed. A `Cancel` column is treated as done too, so dead cards don't pile up in the backlog.
+- The first 10 characters of `dueDate` become the due date.
 
-Kanri 的卡片没有工时字段，所以导入后工时从 0 开始。
+Kanri cards have no hours field, so all tasks start at zero.
 
-## 开发
+## Build from source
 
-需要 Node 18+、pnpm、Rust 1.77+。
+Node 18+, pnpm and Rust 1.77+.
 
 ```bash
 pnpm install
-pnpm tauri dev      # 开发模式，热更新
-pnpm tauri build    # 打包 .app / .msi
+pnpm tauri dev      # dev with hot reload
+pnpm tauri build    # bundle .app / .msi
 ```
 
-只调前端时用 `pnpm dev`，浏览器打开 http://localhost:1420 —— 但浏览器里没有 Tauri 的命令通道，界面会报错，只能看样式。
+For front-end-only work, `pnpm dev` serves http://localhost:1420 — but there is no Tauri command bridge in a browser, so the UI will show an error state. Useful for styles only.
 
-### 目录
+### Layout
 
 ```
-src/                     前端（Vue 3 + TS）
-  components/            看板、项目、任务、日报、设置、各种弹窗
-  store.ts               全局状态与动作（拖动、计时、增删改）
-  api.ts                 invoke 封装，一一对应 Rust 命令
-  types.ts               与 Rust model 对齐的类型
-  styles.css             设计令牌（亮/暗色跟随系统）
+src/                     front end (Vue 3 + TS)
+  components/            board, projects, tasks, report, settings, dialogs
+  i18n.ts                zh / en strings, locale switching
+  store.ts               global state and actions (drag, timer, CRUD)
+  api.ts                 invoke wrappers, one per Rust command
+  types.ts               types mirrored from the Rust models
+  styles.css             design tokens (light/dark follow the system)
 src-tauri/src/
-  db.rs                  建表、查询、快照、计时结算
-  api.rs                 21 个 Tauri 命令
-  report.rs              日报聚合与 Markdown 渲染
-  ai.rs                  OpenAI 兼容接口：批量翻译 + 单行改写
-  kanri.rs               Kanri 数据导入
-  tests.rs               单元测试
+  db.rs                  schema, queries, snapshot, timer settlement
+  api.rs                 Tauri commands
+  report.rs              report aggregation and Markdown rendering
+  ai.rs                  OpenAI-compatible batch translate + single-line rewrite
+  kanri.rs               Kanri import
+  tests.rs               unit tests
 ```
 
-### 测试
+### Tests
 
 ```bash
 cd src-tauri && cargo test
 ```
 
-覆盖 Kanri 导入映射与去重、日报合并与合计、计时结算入库、拖动排期（含重开已完成任务）、英文日报取用翻译缓存。
+Covers Kanri import mapping, de-duplication and prefix grouping; report merging and totals; timer settlement into entries; drag-to-plan including reopening a finished task; and English reports reading from the translation cache.
 
-### 调试用环境变量
+### Debug environment variables
+
+Debug builds only:
 
 ```bash
-WORKPANEL_DB=/tmp/demo.db ./src-tauri/target/debug/workpanel   # 换一个数据库文件
-WORKPANEL_VIEW=report ./src-tauri/target/debug/workpanel       # 启动直接进某个视图
-WORKPANEL_ZOOM=1.25 ./src-tauri/target/debug/workpanel         # 启动时临时缩放（不写回本地设置）
+WORKPANEL_DB=/tmp/demo.db ./src-tauri/target/debug/workpanel    # use another database file
+WORKPANEL_VIEW=report ./src-tauri/target/debug/workpanel        # open on a given view
+WORKPANEL_ZOOM=1.25 ./src-tauri/target/debug/workpanel          # temporary zoom, not persisted
+WORKPANEL_LANG=en ./src-tauri/target/debug/workpanel            # start in English
 ```
 
-两个变量都只在 debug 构建下有效。
+## Building on Windows
 
-## Windows 构建
+Run `pnpm tauri build` on Windows; you get `.msi` and NSIS `.exe`. You need [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) (preinstalled on Windows 11 and most Windows 10) and the [Rust MSVC toolchain](https://www.rust-lang.org/tools/install).
 
-在 Windows 上跑 `pnpm tauri build` 即可，产物是 `.msi` 和 `.exe`（NSIS）。需要先装 [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/)（Win10 1803+ 和 Win11 一般自带）和 [Rust MSVC 工具链](https://www.rust-lang.org/tools/install)。
+The database path and the Kanri import path switch to `%APPDATA%` automatically — no code changes needed.
 
-数据库路径会自动切到 `%APPDATA%`，Kanri 导入路径同理，无需改代码。
+## Trade-offs
 
-## 已知取舍
-
-- 没有云同步，也没做多设备合并。换机器靠拷数据库文件。
-- 没做系统托盘和全局快捷键，计时靠窗口里的计时条。
-- 任务没有子任务、没有附件，Kanri 那边有但这里刻意省掉，日报用不上。
+- No cloud sync, no multi-device merge. Moving machines means copying the database file.
+- No tray icon or global hotkey yet; the timer lives in the window.
+- No subtasks or attachments. Kanri has them; reports don't need them, so they were left out on purpose.

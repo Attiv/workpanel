@@ -3,6 +3,7 @@ import { computed } from "vue";
 import Icon from "./Icon.vue";
 import type { Task } from "../types";
 import { dueLabel, fmtClock, fmtDur, isOverdue } from "../utils";
+import { t } from "../i18n";
 
 const props = defineProps<{
   task: Task;
@@ -32,7 +33,7 @@ const due = computed(() => dueLabel(props.task.dueDate, new Date().toISOString()
   >
     <div class="card-top">
       <span class="dot" :style="{ background: task.color || 'var(--text-3)' }"></span>
-      <span class="proj">{{ task.projectName || "未归类" }}</span>
+      <span class="proj">{{ task.projectName || t("common.unassigned") }}</span>
       <span v-if="task.status === 'done'" class="done-mark"><Icon name="check" :size="11" /></span>
     </div>
 
@@ -42,15 +43,17 @@ const due = computed(() => dueLabel(props.task.dueDate, new Date().toISOString()
       <span v-if="due && task.status !== 'done'" class="due" :class="{ late: overdue }">{{ due }}</span>
       <span v-if="running" class="num live">{{ fmtClock(elapsedMs || 0) }}</span>
       <span v-else-if="task.todayMinutes" class="num">{{ fmtDur(task.todayMinutes) }}</span>
-      <span v-else-if="task.estimateMin" class="num faint">估 {{ fmtDur(task.estimateMin) }}</span>
+      <span v-else-if="task.estimateMin" class="num faint">
+        {{ t("card.estimate", { d: fmtDur(task.estimateMin) }) }}
+      </span>
       <div class="acts">
-        <button class="act" title="手动补记时间" @click.stop="$emit('log', task)">
+        <button class="act" :title="t('card.log')" @click.stop="$emit('log', task)">
           <Icon name="timer" :size="10" />
         </button>
         <button
           class="act play"
           :class="{ on: running }"
-          :title="running ? '停止计时' : '开始计时'"
+          :title="running ? t('card.stop') : t('card.start')"
           @click.stop="$emit('play', task)"
         >
           <Icon :name="running ? 'stop' : 'play'" :size="9" />

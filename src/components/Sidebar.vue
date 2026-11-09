@@ -4,15 +4,16 @@ import Icon from "./Icon.vue";
 import { setView, state } from "../store";
 import { fmtDur } from "../utils";
 import { zoomIn, zoomLevel, zoomOut, zoomReset } from "../zoom";
+import { locale, setLocale, t } from "../i18n";
 
 const nav = computed(() => {
   const s = state.snap;
   return [
-    { key: "today", label: "今天", icon: "board", badge: s?.stats.todayTasks || 0 },
-    { key: "projects", label: "项目", icon: "folder", badge: s?.projects.length || 0 },
-    { key: "tasks", label: "任务", icon: "list", badge: s?.stats.openTasks || 0 },
-    { key: "report", label: "日报", icon: "doc", badge: 0 },
-    { key: "settings", label: "设置", icon: "gear", badge: 0 },
+    { key: "today", label: t("nav.today"), icon: "board", badge: s?.stats.todayTasks || 0 },
+    { key: "projects", label: t("nav.projects"), icon: "folder", badge: s?.projects.length || 0 },
+    { key: "tasks", label: t("nav.tasks"), icon: "list", badge: s?.stats.openTasks || 0 },
+    { key: "report", label: t("nav.report"), icon: "doc", badge: 0 },
+    { key: "settings", label: t("nav.settings"), icon: "gear", badge: 0 },
   ] as const;
 });
 </script>
@@ -22,6 +23,14 @@ const nav = computed(() => {
     <div class="brand">
       <span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>
       <span class="name">WorkPanel</span>
+      <div class="lang" role="group" :aria-label="t('side.language')">
+        <button :class="{ on: locale === 'zh' }" :title="t('common.language')" @click="setLocale('zh')">
+          中
+        </button>
+        <button :class="{ on: locale === 'en' }" :title="t('common.language')" @click="setLocale('en')">
+          EN
+        </button>
+      </div>
     </div>
 
     <nav class="nav">
@@ -40,24 +49,24 @@ const nav = computed(() => {
 
     <div class="foot">
       <div class="row">
-        <span>今日</span>
+        <span>{{ t("side.today") }}</span>
         <b class="num">{{ fmtDur(state.snap?.stats.todayMinutes || 0) }}</b>
       </div>
       <div class="row">
-        <span>本周</span>
+        <span>{{ t("side.week") }}</span>
         <b class="num">{{ fmtDur(state.snap?.stats.weekMinutes || 0) }}</b>
       </div>
       <div class="row muted">
-        <span>未完成</span>
-        <b class="num">{{ state.snap?.stats.openTasks || 0 }} 项</b>
+        <span>{{ t("side.open") }}</span>
+        <b class="num">{{ t("side.items", { n: state.snap?.stats.openTasks || 0 }) }}</b>
       </div>
 
       <div class="zoom">
-        <button class="zbtn" title="缩小（⌘−）" @click="zoomOut">−</button>
-        <button class="zbtn val num" title="恢复 100%（⌘0）" @click="zoomReset">
+        <button class="zbtn" :title="t('side.zoomOut')" @click="zoomOut">−</button>
+        <button class="zbtn val num" :title="t('side.zoomReset')" @click="zoomReset">
           {{ Math.round(zoomLevel * 100) }}%
         </button>
-        <button class="zbtn" title="放大（⌘+）" @click="zoomIn">+</button>
+        <button class="zbtn" :title="t('side.zoomIn')" @click="zoomIn">+</button>
       </div>
     </div>
   </aside>
@@ -108,6 +117,35 @@ const nav = computed(() => {
 .name {
   font-size: 13px;
   font-weight: 500;
+}
+
+.lang {
+  margin-left: auto;
+  display: flex;
+  gap: 1px;
+  background: var(--sunken);
+  border-radius: 5px;
+  padding: 1px;
+}
+
+.lang button {
+  height: 17px;
+  min-width: 19px;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--text-3);
+}
+
+.lang button:hover {
+  color: var(--text-2);
+}
+
+.lang button.on {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 0 0 0.5px var(--line);
 }
 
 .nav {

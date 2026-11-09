@@ -13,6 +13,7 @@ import {
   type Column,
 } from "../store";
 import { fmtDay, fmtDur, todayISO } from "../utils";
+import { t } from "../i18n";
 import type { Task } from "../types";
 
 const boardEl = ref<HTMLElement | null>(null);
@@ -45,31 +46,33 @@ const columns = computed(() => {
   return [
     {
       key: "backlog" as Column,
-      title: "待排",
+      title: t("board.backlog"),
       tasks: backlog,
       meta: `${backlog.length}`,
-      hint: "还没有待排任务",
+      hint: t("board.hintBacklog"),
     },
     {
       key: "today" as Column,
-      title: "今天",
+      title: t("board.today"),
       tasks: today,
-      meta: `${today.length}${est ? " · 预计 " + fmtDur(est) : ""}${rec ? " · 已记 " + fmtDur(rec) : ""}`,
-      hint: "把任务拖到这里，排进今天",
+      meta: `${today.length}${est ? " · " + t("board.est") + " " + fmtDur(est) : ""}${
+        rec ? " · " + t("board.logged") + " " + fmtDur(rec) : ""
+      }`,
+      hint: t("board.hintToday"),
     },
     {
       key: "doing" as Column,
-      title: "进行中",
+      title: t("board.doing"),
       tasks: doing,
       meta: `${doing.length}`,
-      hint: "点卡片上的 ▶ 计时，拖回「今天」可以先放下",
+      hint: t("board.hintDoing"),
     },
     {
       key: "done" as Column,
-      title: "完成",
+      title: t("board.done"),
       tasks: done,
       meta: done.length ? fmtDur(done.reduce((s, t) => s + t.todayMinutes, 0)) : "0",
-      hint: "今天还没有完成的任务",
+      hint: t("board.hintDone"),
     },
   ];
 });
@@ -184,15 +187,15 @@ const isToday = computed(() => state.date === todayISO());
   <section class="view">
     <header class="head">
       <div class="date">
-        <button class="btn icon ghost" title="前一天" @click="stepDate(-1)">
+        <button class="btn icon ghost" :title="t('board.prevDay')" @click="stepDate(-1)">
           <Icon name="left" :size="14" />
         </button>
         <h1>{{ fmtDay(state.date) }}</h1>
-        <button class="btn icon ghost" title="后一天" @click="stepDate(1)">
+        <button class="btn icon ghost" :title="t('board.nextDay')" @click="stepDate(1)">
           <Icon name="right" :size="14" />
         </button>
         <button v-if="!isToday" class="btn ghost today-btn" @click="setDate(todayISO())">
-          回到今天
+          {{ t("board.backToToday") }}
         </button>
       </div>
 
@@ -204,9 +207,9 @@ const isToday = computed(() => state.date === todayISO());
           </div>
           <div class="bar"><i :style="{ width: progress + '%' }"></i></div>
         </div>
-        <button class="btn" @click="openEntryModal()">补记时间</button>
+        <button class="btn" @click="openEntryModal()">{{ t("board.logTime") }}</button>
         <button class="btn primary" @click="openTaskModal(undefined, 'today')">
-          <Icon name="plus" :size="12" />任务
+          <Icon name="plus" :size="12" />{{ t("board.newTask") }}
         </button>
       </div>
     </header>
@@ -243,7 +246,7 @@ const isToday = computed(() => state.date === todayISO());
             class="add"
             @click="openTaskModal(undefined, col.key)"
           >
-            <Icon name="plus" :size="11" /> 新任务
+            <Icon name="plus" :size="11" /> {{ t("board.addTask") }}
           </button>
         </div>
       </div>

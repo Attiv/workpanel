@@ -5,6 +5,7 @@ import Modal from "./Modal.vue";
 import { closeModal, deleteTaskFlow, saveTaskFlow, state } from "../store";
 import { fmtDur, parseDuration, shiftISO } from "../utils";
 import type { Status, Task } from "../types";
+import { t } from "../i18n";
 
 const props = defineProps<{ task?: Task; column?: string }>();
 
@@ -35,12 +36,12 @@ function setPlan(offset: number | null) {
 
 async function submit() {
   if (!title.value.trim()) {
-    error.value = "先写一句任务名";
+    error.value = t("dlg.errTitle");
     return;
   }
   const minutes = estimate.value.trim() ? parseDuration(estimate.value) : null;
   if (estimate.value.trim() && !minutes) {
-    error.value = "时长格式看不懂，试试 1h30m 或 45m";
+    error.value = t("dlg.errDuration");
     return;
   }
   const ok = await saveTaskFlow({
@@ -69,70 +70,72 @@ async function remove() {
 </script>
 
 <template>
-  <Modal :title="isEdit ? '编辑任务' : '新任务'" :width="470" @close="closeModal">
+  <Modal :title="isEdit ? t('dlg.taskEdit') : t('dlg.taskNew')" :width="470" @close="closeModal">
     <label class="field">
-      <span class="lab">任务</span>
+      <span class="lab">{{ t("dlg.task") }}</span>
       <input
         ref="titleEl"
         v-model="title"
         class="input"
-        placeholder="要做什么"
+        :placeholder="t('dlg.taskPlaceholder')"
         @keydown.enter.prevent="submit"
         @input="error = ''"
       />
     </label>
 
     <div class="field">
-      <span class="lab">项目</span>
+      <span class="lab">{{ t("dlg.project") }}</span>
       <select v-model="projectId" class="input">
-        <option :value="null">未归类</option>
+        <option :value="null">{{ t("common.unassigned") }}</option>
         <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
       </select>
     </div>
 
     <div class="field">
-      <span class="lab">状态</span>
+      <span class="lab">{{ t("dlg.status") }}</span>
       <select v-model="status" class="input">
-        <option value="todo">待办</option>
-        <option value="doing">进行中</option>
-        <option value="done">已完成</option>
+        <option value="todo">{{ t("dlg.todo") }}</option>
+        <option value="doing">{{ t("dlg.doing") }}</option>
+        <option value="done">{{ t("dlg.done") }}</option>
       </select>
     </div>
 
     <div class="field">
-      <span class="lab">排到</span>
+      <span class="lab">{{ t("dlg.planned") }}</span>
       <div class="dates">
         <input v-model="planned" type="date" class="input" />
-        <button class="chip-btn" @click="setPlan(0)">今天</button>
-        <button class="chip-btn" @click="setPlan(1)">明天</button>
-        <button v-if="planned" class="chip-btn" @click="setPlan(null)">清除</button>
+        <button class="chip-btn" @click="setPlan(0)">{{ t("common.today") }}</button>
+        <button class="chip-btn" @click="setPlan(1)">{{ t("common.tomorrow") }}</button>
+        <button v-if="planned" class="chip-btn" @click="setPlan(null)">
+          {{ t("dlg.clear") }}
+        </button>
       </div>
     </div>
 
     <div class="field">
-      <span class="lab">截止</span>
+      <span class="lab">{{ t("dlg.due") }}</span>
       <input v-model="due" type="date" class="input" />
     </div>
 
     <div class="field">
-      <span class="lab">预估</span>
+      <span class="lab">{{ t("dlg.estimate") }}</span>
       <input v-model="estimate" class="input" placeholder="1h30m" />
     </div>
 
     <label class="field">
-      <span class="lab">备注</span>
-      <textarea v-model="note" class="input" rows="3" placeholder="补充说明，会出现在日报里" />
+      <span class="lab">{{ t("dlg.note") }}</span>
+      <textarea v-model="note" class="input" rows="3" :placeholder="t('dlg.notePlaceholder')" />
     </label>
 
     <p v-if="error" class="err">{{ error }}</p>
 
     <template #footer>
       <button v-if="isEdit" class="btn danger" @click="remove">
-        {{ confirmDelete ? "再点一次删除" : "删除" }}
+        {{ confirmDelete ? t("common.deleteAgain") : t("common.delete") }}
       </button>
       <div style="flex: 1"></div>
-      <button class="btn" @click="closeModal">取消</button>
-      <button class="btn primary" @click="submit">保存</button>
+      <button class="btn" @click="closeModal">{{ t("common.cancel") }}</button>
+      <button class="btn primary" @click="submit">{{ t("common.save") }}</button>
     </template>
   </Modal>
 </template>
@@ -140,7 +143,7 @@ async function remove() {
 <style scoped>
 .field {
   display: grid;
-  grid-template-columns: 46px 1fr;
+  grid-template-columns: 58px 1fr;
   align-items: center;
   gap: 10px;
   margin-bottom: 9px;
@@ -188,7 +191,7 @@ async function remove() {
 }
 
 .err {
-  margin: 2px 0 0 56px;
+  margin: 2px 0 0 68px;
   font-size: 11.5px;
   color: var(--danger);
 }

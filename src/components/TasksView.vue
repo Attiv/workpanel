@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import Icon from "./Icon.vue";
 import { openTaskModal, startTask, state, toggleDone } from "../store";
 import { dueLabel, fmtDur, isOverdue } from "../utils";
+import { t } from "../i18n";
 import type { Task } from "../types";
 
 type Filter = "all" | "backlog" | "today" | "doing" | "done";
@@ -11,10 +12,29 @@ const filter = ref<Filter>("all");
 const query = ref("");
 
 const tabs = computed(() => [
-  { key: "all" as Filter, label: "全部", n: state.snap?.tasks.filter((t) => t.status !== "done").length || 0 },
-  { key: "today" as Filter, label: "今天", n: state.snap?.tasks.filter((t) => t.plannedDate === state.date && t.status !== "done").length || 0 },
-  { key: "doing" as Filter, label: "进行中", n: state.snap?.tasks.filter((t) => t.status === "doing").length || 0 },
-  { key: "done" as Filter, label: "已完成", n: state.snap?.tasks.filter((t) => t.status === "done").length || 0 },
+  {
+    key: "all" as Filter,
+    label: t("tasks.all"),
+    n: state.snap?.tasks.filter((x) => x.status !== "done").length || 0,
+  },
+  {
+    key: "today" as Filter,
+    label: t("tasks.today"),
+    n:
+      state.snap?.tasks.filter(
+        (x) => x.plannedDate === state.date && x.status !== "done",
+      ).length || 0,
+  },
+  {
+    key: "doing" as Filter,
+    label: t("tasks.doing"),
+    n: state.snap?.tasks.filter((x) => x.status === "doing").length || 0,
+  },
+  {
+    key: "done" as Filter,
+    label: t("tasks.done"),
+    n: state.snap?.tasks.filter((x) => x.status === "done").length || 0,
+  },
 ]);
 
 const list = computed(() => {
@@ -39,82 +59,82 @@ const list = computed(() => {
   });
 });
 
-function overdue(t: Task) {
-  return t.status !== "done" && isOverdue(t.dueDate, state.date);
+function overdue(task: Task) {
+  return task.status !== "done" && isOverdue(task.dueDate, state.date);
 }
 </script>
 
 <template>
   <section class="view">
     <header class="head">
-      <h1>任务</h1>
+      <h1>{{ t("tasks.title") }}</h1>
       <div style="flex: 1"></div>
       <button class="btn primary" @click="openTaskModal(undefined, 'today')">
-        <Icon name="plus" :size="12" />新任务
+        <Icon name="plus" :size="12" />{{ t("tasks.new") }}
       </button>
     </header>
 
     <div class="toolbar">
       <div class="tabs">
         <button
-          v-for="t in tabs"
-          :key="t.key"
+          v-for="tab in tabs"
+          :key="tab.key"
           class="tab"
-          :class="{ on: filter === t.key }"
-          @click="filter = t.key"
+          :class="{ on: filter === tab.key }"
+          @click="filter = tab.key"
         >
-          {{ t.label }}<span class="tn num">{{ t.n }}</span>
+          {{ tab.label }}<span class="tn num">{{ tab.n }}</span>
         </button>
       </div>
       <div class="search">
         <Icon name="search" :size="13" />
-        <input v-model="query" class="sinput" placeholder="搜任务名或项目" />
+        <input v-model="query" class="sinput" :placeholder="t('tasks.search')" />
       </div>
     </div>
 
     <div class="table">
-      <div v-for="t in list" :key="t.id" class="trow" @dblclick="openTaskModal(t)">
+      <div v-for="row in list" :key="row.id" class="trow" @dblclick="openTaskModal(row)">
         <button
           class="check"
-          :class="{ on: t.status === 'done' }"
-          :title="t.status === 'done' ? '标记为未完成' : '标记完成'"
-          @click.stop="toggleDone(t)"
+          :class="{ on: row.status === 'done' }"
+          :title="row.status === 'done' ? t('tasks.markOpen') : t('tasks.markDone')"
+          @click.stop="toggleDone(row)"
         >
-          <Icon v-if="t.status === 'done'" name="check" :size="9" />
+          <Icon v-if="row.status === 'done'" name="check" :size="9" />
         </button>
 
-        <div class="main" @click="openTaskModal(t)">
-          <span class="title" :class="{ done: t.status === 'done' }">{{ t.title }}</span>
-          <span v-if="t.note" class="note">{{ t.note }}</span>
+        <div class="main" @click="openTaskModal(row)">
+          <span class="title" :class="{ done: row.status === 'done' }">{{ row.title }}</span>
+          <span v-if="row.note" class="note">{{ row.note }}</span>
         </div>
 
         <span class="proj">
-          <i class="dot" :style="{ background: t.color || 'var(--text-3)' }"></i>
-          <span>{{ t.projectName || "未归类" }}</span>
+          <i class="dot" :style="{ background: row.color || 'var(--text-3)' }"></i>
+          <span>{{ row.projectName || t("common.unassigned") }}</span>
         </span>
 
         <span class="tag">
-          <em v-if="t.plannedDate === state.date" class="tchip">今天</em>
-          <em v-else-if="t.plannedDate" class="tdate">{{ t.plannedDate.slice(5) }}</em>
+          <em v-if="row.plannedDate === state.date" class="tchip">{{ t("tasks.todayChip") }}</em>
+          <em v-else-if="row.plannedDate" class="tdate">{{ row.plannedDate.slice(5) }}</em>
         </span>
 
-        <span class="due" :class="{ late: overdue(t) }">
-          {{ t.dueDate ? dueLabel(t.dueDate, state.date) : "" }}
+        <span class="due" :class="{ late: overdue(row) }">
+          {{ row.dueDate ? dueLabel(row.dueDate, state.date) : "" }}
         </span>
 
-        <span class="mins num">{{ t.todayMinutes ? fmtDur(t.todayMinutes) : "" }}</span>
+        <span class="mins num">{{ row.todayMinutes ? fmtDur(row.todayMinutes) : "" }}</span>
 
         <button
           class="play"
-          :class="{ on: state.snap?.timer?.taskId === t.id }"
-          :title="state.snap?.timer?.taskId === t.id ? '停止' : '开始计时'"
-          @click.stop="startTask(t)"
+          :class="{ on: state.snap?.timer?.taskId === row.id }"
+          :title="state.snap?.timer?.taskId === row.id ? t('tasks.stop') : t('tasks.start')"
+          @click.stop="startTask(row)"
         >
-          <Icon :name="state.snap?.timer?.taskId === t.id ? 'stop' : 'play'" :size="8" />
+          <Icon :name="state.snap?.timer?.taskId === row.id ? 'stop' : 'play'" :size="8" />
         </button>
       </div>
 
-      <p v-if="!list.length" class="empty">这里没有任务。</p>
+      <p v-if="!list.length" class="empty">{{ t("tasks.empty") }}</p>
     </div>
   </section>
 </template>

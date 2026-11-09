@@ -4,6 +4,7 @@ import * as api from "../api";
 import Icon from "./Icon.vue";
 import { refresh, saveSettingsFlow, state, toast } from "../store";
 import type { Settings } from "../types";
+import { locale, setLocale, t } from "../i18n";
 
 const form = ref<Settings>({
   aiBase: "",
@@ -17,6 +18,7 @@ const dbPath = ref("");
 const version = ref("");
 const testing = ref(false);
 const testResult = ref("");
+const testOk = ref(false);
 const importing = ref(false);
 const importMsg = ref("");
 const hours = ref(8);
@@ -44,12 +46,14 @@ async function save() {
 async function test() {
   testing.value = true;
   testResult.value = "";
+  testOk.value = false;
   try {
     form.value.workdayMinutes = Math.round(hours.value * 60);
     await api.saveSettings({ ...form.value });
     await refresh();
     const out = await api.testAi();
-    testResult.value = `通了：${out}`;
+    testResult.value = t("set.testOk", { msg: out });
+    testOk.value = true;
   } catch (e) {
     testResult.value = String(e);
   } finally {
@@ -63,8 +67,14 @@ async function importKanri() {
   try {
     const r = await api.importKanri();
     await refresh();
-    importMsg.value = `从 ${r.boards} 个看板读到 ${r.cards} 张卡片，新增 ${r.createdTasks} 个任务、${r.createdProjects} 个项目，跳过 ${r.skipped} 个重复。`;
-    toast("导入完成");
+    importMsg.value = t("set.importResult", {
+      boards: r.boards,
+      cards: r.cards,
+      tasks: r.createdTasks,
+      projects: r.createdProjects,
+      skipped: r.skipped,
+    });
+    toast(t("set.importDone"));
   } catch (e) {
     importMsg.value = String(e);
   } finally {
@@ -76,24 +86,35 @@ async function importKanri() {
 <template>
   <section class="view">
     <header class="head">
-      <h1>设置</h1>
+      <h1>{{ t("set.title") }}</h1>
       <div style="flex: 1"></div>
-      <button class="btn primary" @click="save">保存</button>
+      <button class="btn primary" @click="save">{{ t("common.save") }}</button>
     </header>
 
     <div class="body">
       <section class="card">
+        <div class="card-head"><h2>{{ t("set.ui") }}</h2></div>
+        <div class="field">
+          <span class="lab">{{ t("set.uiLang") }}</span>
+          <div class="seg">
+            <button :class="{ on: locale === 'zh' }" @click="setLocale('zh')">中文</button>
+            <button :class="{ on: locale === 'en' }" @click="setLocale('en')">English</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
         <div class="card-head">
           <h2>AI</h2>
-          <span class="muted">可选。只在你点「改写」或「AI 翻译」时调用。</span>
+          <span class="muted">{{ t("set.aiHint") }}</span>
         </div>
 
         <div class="field">
-          <span class="lab">接口地址</span>
+          <span class="lab">{{ t("set.endpoint") }}</span>
           <input v-model="form.aiBase" class="input" placeholder="https://api.deepseek.com/v1" />
         </div>
         <div class="field">
-          <span class="lab">模型</span>
+          <span class="lab">{{ t("set.model") }}</span>
           <input v-model="form.aiModel" class="input" placeholder="deepseek-chat" />
         </div>
         <div class="field">
@@ -103,57 +124,61 @@ async function importKanri() {
 
         <div class="row">
           <button class="btn" :disabled="testing" @click="test">
-            {{ testing ? "测试中" : "测试连接" }}
+            {{ testing ? t("set.testing") : t("set.test") }}
           </button>
-          <span v-if="testResult" class="test-out" :class="{ bad: !testResult.startsWith('通了') }">
+          <span v-if="testResult" class="test-out" :class="{ bad: !testOk }">
             {{ testResult }}
           </span>
         </div>
       </section>
 
       <section class="card">
-        <div class="card-head"><h2>工作节奏</h2></div>
+        <div class="card-head"><h2>{{ t("set.rhythm") }}</h2></div>
         <div class="field">
-          <span class="lab">每天工时</span>
+          <span class="lab">{{ t("set.workday") }}</span>
           <div class="inline">
             <input v-model.number="hours" class="input" type="number" min="1" max="16" step="0.5" style="width: 76px" />
-            <span class="muted">小时，看板顶部按它算进度</span>
+            <span class="muted">{{ t("set.workdayHint") }}</span>
           </div>
         </div>
         <div class="field">
-          <span class="lab">日报默认</span>
+          <span class="lab">{{ t("set.reportLang") }}</span>
           <div class="seg">
-            <button :class="{ on: form.reportLang === 'zh' }" @click="form.reportLang = 'zh'">中文</button>
-            <button :class="{ on: form.reportLang === 'en' }" @click="form.reportLang = 'en'">English</button>
-            <button :class="{ on: form.reportLang === 'both' }" @click="form.reportLang = 'both'">双语</button>
+            <button :class="{ on: form.reportLang === 'zh' }" @click="form.reportLang = 'zh'">
+              {{ t("report.langZh") }}
+            </button>
+            <button :class="{ on: form.reportLang === 'en' }" @click="form.reportLang = 'en'">
+              {{ t("report.langEn") }}
+            </button>
+            <button :class="{ on: form.reportLang === 'both' }" @click="form.reportLang = 'both'">
+              {{ t("report.langBoth") }}
+            </button>
           </div>
         </div>
       </section>
 
       <section class="card">
         <div class="card-head">
-          <h2>数据</h2>
+          <h2>{{ t("set.data") }}</h2>
         </div>
 
         <div class="field">
-          <span class="lab">数据库</span>
+          <span class="lab">{{ t("set.db") }}</span>
           <code class="path">{{ dbPath }}</code>
         </div>
 
         <div class="row">
           <button class="btn" :disabled="importing" @click="importKanri">
-            {{ importing ? "导入中" : "从 Kanri 导入任务" }}
+            {{ importing ? t("set.importing") : t("set.import") }}
           </button>
-          <span class="muted">只读 Kanri 的数据文件，不会改动它；重复任务会跳过。</span>
+          <span class="muted">{{ t("set.importHint") }}</span>
         </div>
         <p v-if="importMsg" class="import-msg">{{ importMsg }}</p>
       </section>
 
       <section class="card">
-        <div class="card-head"><h2>关于</h2></div>
-        <p class="about">
-          WorkPanel {{ version }} · 本地优先，数据只存在这台机器上，不上传任何服务器。
-        </p>
+        <div class="card-head"><h2>{{ t("set.about") }}</h2></div>
+        <p class="about">WorkPanel {{ version }} · {{ t("set.aboutText") }}</p>
       </section>
     </div>
   </section>
