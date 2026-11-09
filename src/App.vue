@@ -69,9 +69,15 @@ onMounted(async () => {
     if (info.view && info.view in views) setView(info.view as View);
     if (info.zoom) await applyZoom(info.zoom, false);
     if (info.lang === "zh" || info.lang === "en") setLocale(info.lang);
-    if (info.modal === "task") openTaskModal();
-    else if (info.modal === "entry") openEntryModal();
-    else if (info.modal === "project") openProjectModal();
+    const [kind, arg] = info.modal.split(":");
+    const id = Number(arg);
+    if (kind === "task") {
+      openTaskModal(id ? state.snap?.tasks.find((t) => t.id === id) : undefined);
+    } else if (kind === "entry") {
+      openEntryModal(id ? state.snap?.entries.find((e) => e.id === id) : undefined);
+    } else if (kind === "project") {
+      openProjectModal();
+    }
   } catch {
     /* ignore */
   }

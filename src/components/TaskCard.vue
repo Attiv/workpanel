@@ -34,6 +34,9 @@ const due = computed(() => dueLabel(props.task.dueDate, new Date().toISOString()
     <div class="card-top">
       <span class="dot" :style="{ background: task.color || 'var(--text-3)' }"></span>
       <span class="proj">{{ task.projectName || t("common.unassigned") }}</span>
+      <span v-if="task.attachCount" class="att" :title="t('card.attach', { n: task.attachCount })">
+        <Icon name="image" :size="9" />{{ task.attachCount }}
+      </span>
       <span v-if="task.status === 'done'" class="done-mark"><Icon name="check" :size="11" /></span>
     </div>
 
@@ -112,6 +115,8 @@ const due = computed(() => dueLabel(props.task.dueDate, new Date().toISOString()
 }
 
 .proj {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -121,6 +126,15 @@ const due = computed(() => dueLabel(props.task.dueDate, new Date().toISOString()
   margin-left: auto;
   color: var(--ok);
   display: inline-flex;
+}
+
+.att {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 1px;
+  color: var(--text-2);
+  opacity: 0.75;
 }
 
 .card-title {

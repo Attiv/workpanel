@@ -1,6 +1,7 @@
 import { reactive } from "vue";
 import * as api from "./api";
 import type {
+  AttachmentDraft,
   Entry,
   EntryInput,
   Project,
@@ -143,13 +144,13 @@ export async function stopTimerFlow(note?: string) {
 
 export async function saveTaskFlow(input: TaskInput) {
   try {
-    await api.saveTask(input);
+    const id = await api.saveTask(input);
     await refresh();
     toast(t(input.id ? "toast.taskUpdated" : "toast.taskAdded"));
-    return true;
+    return id;
   } catch (e) {
     toast(String(e), "err");
-    return false;
+    return null;
   }
 }
 
@@ -165,13 +166,45 @@ export async function deleteTaskFlow(id: number) {
 
 export async function saveEntryFlow(input: EntryInput) {
   try {
+    let id = input.id;
     if (input.id) await api.updateEntry(input);
-    else await api.addEntry(input);
+    else id = await api.addEntry(input);
     await refresh();
     toast(t(input.id ? "toast.entryUpdated" : "toast.entryAdded"));
-    return true;
+    return id ?? null;
   } catch (e) {
     toast(String(e), "err");
+    return null;
+  }
+}
+
+/**
+ * 对话框里的图片：新增的入库，标了删除的删掉。
+ * 必须等主体有了 id 才能调用。
+ */
+export async function syncAttachments(
+  ownerType: "task" | "entry",
+  ownerId: number,
+  drafts: AttachmentDraft[],
+) {
+  try {
+    for (const draft of drafts) {
+      if (draft.removed) {
+        if (draft.id) await api.deleteAttachment(draft.id);
+      } else if (!draft.id) {
+        await api.addAttachment({
+          ownerType,
+          ownerId,
+          dataUrl: draft.dataUrl,
+          width: draft.width,
+          height: draft.height,
+        });
+      }
+    }
+    await refresh();
+    return true;
+  } catch {
+    toast(t("dlg.attachSaveFailed"), "err");
     return false;
   }
 }

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from "vue";
 import Icon from "./Icon.vue";
+import ImageAttach from "./ImageAttach.vue";
 import Modal from "./Modal.vue";
-import { closeModal, deleteTaskFlow, saveTaskFlow, state } from "../store";
-import { fmtDur, parseDuration, shiftISO } from "../utils";
-import type { Status, Task } from "../types";
+import * as api from "../api";
+import { closeModal, deleteTaskFlow, saveTaskFlow, state, syncAttachments } from "../store";
+import { fmtDur, imageFilesFromClipboard, parseDuration, shiftISO } from "../utils";
+import type { AttachmentDraft, Status, Task } from "../types";
 import { t } from "../i18n";
 
 const props = defineProps<{ task?: Task; column?: string }>();
@@ -18,6 +20,8 @@ const planned = ref<string>(props.task?.plannedDate ?? (props.column === "today"
 const due = ref(props.task?.dueDate ?? "");
 const estimate = ref(props.task?.estimateMin ? fmtDur(props.task.estimateMin) : "");
 const note = ref(props.task?.note ?? "");
+const images = ref<AttachmentDraft[]>([]);
+const attachEl = ref<InstanceType<typeof ImageAttach> | null>(null);
 const error = ref("");
 const confirmDelete = ref(false);
 const titleEl = ref<HTMLInputElement | null>(null);
@@ -28,7 +32,35 @@ const isEdit = computed(() => !!props.task);
 onMounted(async () => {
   await nextTick();
   titleEl.value?.focus();
+  if (props.task) {
+    try {
+      const list = await api.listAttachments("task", props.task.id);
+      images.value = list.map((a) => ({
+        id: a.id,
+        dataUrl: a.dataUrl,
+        mime: a.mime,
+        width: a.width,
+        height: a.height,
+        bytes: a.bytes,
+      }));
+    } catch {
+      // 图片加载失败不该挡住改文字
+    }
+  }
 });
+
+function onPaste(e: ClipboardEvent) {
+  const files = imageFilesFromClipboard(e);
+  if (!files.length) return;
+  e.preventDefault();
+  void attachEl.value?.addFiles(files);
+}
+
+function onDrop(e: DragEvent) {
+  if (!e.dataTransfer?.files.length) return;
+  e.preventDefault();
+  void attachEl.value?.addFiles(Array.from(e.dataTransfer.files));
+}
 
 function setPlan(offset: number | null) {
   planned.value = offset === null ? "" : shiftISO(state.date, offset);
@@ -54,7 +86,11 @@ async function submit() {
     dueDate: due.value || null,
     estimateMin: minutes,
   });
-  if (ok) closeModal();
+  if (!ok) return;
+  if (images.value.some((d) => d.removed || !d.id)) {
+    await syncAttachments("task", ok, images.value);
+  }
+  closeModal();
 }
 
 async function remove() {
@@ -71,63 +107,69 @@ async function remove() {
 
 <template>
   <Modal :title="isEdit ? t('dlg.taskEdit') : t('dlg.taskNew')" :width="470" @close="closeModal">
-    <label class="field">
-      <span class="lab">{{ t("dlg.task") }}</span>
-      <input
-        ref="titleEl"
-        v-model="title"
-        class="input"
-        :placeholder="t('dlg.taskPlaceholder')"
-        @keydown.enter.prevent="submit"
-        @input="error = ''"
-      />
-    </label>
+    <div class="dlg-body" @paste="onPaste" @dragover.prevent @drop="onDrop">
+      <label class="field">
+        <span class="lab">{{ t("dlg.task") }}</span>
+        <input
+          ref="titleEl"
+          v-model="title"
+          class="input"
+          :placeholder="t('dlg.taskPlaceholder')"
+          @keydown.enter.prevent="submit"
+          @input="error = ''"
+        />
+      </label>
 
-    <div class="field">
-      <span class="lab">{{ t("dlg.project") }}</span>
-      <select v-model="projectId" class="input">
-        <option :value="null">{{ t("common.unassigned") }}</option>
-        <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
-      </select>
-    </div>
-
-    <div class="field">
-      <span class="lab">{{ t("dlg.status") }}</span>
-      <select v-model="status" class="input">
-        <option value="todo">{{ t("dlg.todo") }}</option>
-        <option value="doing">{{ t("dlg.doing") }}</option>
-        <option value="done">{{ t("dlg.done") }}</option>
-      </select>
-    </div>
-
-    <div class="field">
-      <span class="lab">{{ t("dlg.planned") }}</span>
-      <div class="dates">
-        <input v-model="planned" type="date" class="input" />
-        <button class="chip-btn" @click="setPlan(0)">{{ t("common.today") }}</button>
-        <button class="chip-btn" @click="setPlan(1)">{{ t("common.tomorrow") }}</button>
-        <button v-if="planned" class="chip-btn" @click="setPlan(null)">
-          {{ t("dlg.clear") }}
-        </button>
+      <div class="field">
+        <span class="lab">{{ t("dlg.project") }}</span>
+        <select v-model="projectId" class="input">
+          <option :value="null">{{ t("common.unassigned") }}</option>
+          <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
+        </select>
       </div>
+
+      <div class="field">
+        <span class="lab">{{ t("dlg.status") }}</span>
+        <select v-model="status" class="input">
+          <option value="todo">{{ t("dlg.todo") }}</option>
+          <option value="doing">{{ t("dlg.doing") }}</option>
+          <option value="done">{{ t("dlg.done") }}</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <span class="lab">{{ t("dlg.planned") }}</span>
+        <div class="dates">
+          <input v-model="planned" type="date" class="input" />
+          <button class="chip-btn" @click="setPlan(0)">{{ t("common.today") }}</button>
+          <button class="chip-btn" @click="setPlan(1)">{{ t("common.tomorrow") }}</button>
+          <button v-if="planned" class="chip-btn" @click="setPlan(null)">
+            {{ t("dlg.clear") }}
+          </button>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="lab">{{ t("dlg.due") }}</span>
+        <input v-model="due" type="date" class="input" />
+      </div>
+
+      <div class="field">
+        <span class="lab">{{ t("dlg.estimate") }}</span>
+        <input v-model="estimate" class="input" placeholder="1h30m" />
+      </div>
+
+      <label class="field">
+        <span class="lab">{{ t("dlg.note") }}</span>
+        <textarea v-model="note" class="input" rows="3" :placeholder="t('dlg.notePlaceholder')" />
+      </label>
+
+      <div class="attach-row">
+        <ImageAttach ref="attachEl" v-model="images" />
+      </div>
+
+      <p v-if="error" class="err">{{ error }}</p>
     </div>
-
-    <div class="field">
-      <span class="lab">{{ t("dlg.due") }}</span>
-      <input v-model="due" type="date" class="input" />
-    </div>
-
-    <div class="field">
-      <span class="lab">{{ t("dlg.estimate") }}</span>
-      <input v-model="estimate" class="input" placeholder="1h30m" />
-    </div>
-
-    <label class="field">
-      <span class="lab">{{ t("dlg.note") }}</span>
-      <textarea v-model="note" class="input" rows="3" :placeholder="t('dlg.notePlaceholder')" />
-    </label>
-
-    <p v-if="error" class="err">{{ error }}</p>
 
     <template #footer>
       <button v-if="isEdit" class="btn danger" @click="remove">
@@ -194,5 +236,9 @@ async function remove() {
   margin: 2px 0 0 68px;
   font-size: 11.5px;
   color: var(--danger);
+}
+
+.attach-row {
+  margin: -2px 0 9px 68px;
 }
 </style>

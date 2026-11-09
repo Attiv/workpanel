@@ -1,9 +1,13 @@
 use crate::db::{self, now_str};
 use crate::model::*;
 use crate::{ai, kanri, report};
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use rusqlite::params;
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
+
+const MAX_ATTACH_PER_OWNER: i64 = 12;
+const MAX_ATTACH_BYTES: usize = 6 * 1024 * 1024;
 
 pub struct AppState {
     pub conn: Mutex<rusqlite::Connection>,
@@ -157,6 +161,7 @@ pub fn save_task(state: State<'_, AppState>, task: TaskInput) -> Result<i64, Str
 #[tauri::command]
 pub fn delete_task(state: State<'_, AppState>, id: i64) -> Result<(), String> {
     let conn = state.conn.lock().map_err(err)?;
+    db::delete_attachments_of(&conn, "task", id).map_err(err)?;
     conn.execute("DELETE FROM tasks WHERE id = ?1", params![id])
         .map_err(err)?;
     Ok(())
@@ -246,6 +251,7 @@ pub fn stop_timer(state: State<'_, AppState>, note: Option<String>) -> Result<Op
                     note: r.get(8)?,
                     started_at: r.get(9)?,
                     ended_at: r.get(10)?,
+                    attach_count: 0,
                 })
             },
         )
@@ -301,14 +307,92 @@ pub fn update_entry(state: State<'_, AppState>, entry: EntryInput) -> Result<(),
 #[tauri::command]
 pub fn delete_entry(state: State<'_, AppState>, id: i64) -> Result<(), String> {
     let conn = state.conn.lock().map_err(err)?;
+    db::delete_attachments_of(&conn, "entry", id).map_err(err)?;
     conn.execute("DELETE FROM entries WHERE id = ?1", params![id])
         .map_err(err)?;
     Ok(())
 }
 
+pub(crate) fn decode_data_url(url: &str) -> Result<(String, Vec<u8>), String> {
+    let rest = url
+        .strip_prefix("data:")
+        .ok_or_else(|| "unsupported image data".to_string())?;
+    let (meta, payload) = rest
+        .split_once(',')
+        .ok_or_else(|| "unsupported image data".to_string())?;
+    if !meta.contains(";base64") {
+        return Err("image must be base64 encoded".into());
+    }
+    let mime = meta
+        .split(';')
+        .next()
+        .unwrap_or("")
+        .trim()
+        .to_ascii_lowercase();
+    if !mime.starts_with("image/") {
+        return Err("not an image".into());
+    }
+    let data = STANDARD
+        .decode(payload)
+        .map_err(|_| "image data is not valid base64".to_string())?;
+    if data.is_empty() {
+        return Err("image is empty".into());
+    }
+    if data.len() > MAX_ATTACH_BYTES {
+        return Err("image is too large".into());
+    }
+    Ok((mime, data))
+}
+
 #[tauri::command]
-pub fn build_report(
+pub fn add_attachment(state: State<'_, AppState>, input: AttachmentInput) -> Result<i64, String> {
+    let conn = state.conn.lock().map_err(err)?;
+    if input.owner_type != "task" && input.owner_type != "entry" {
+        return Err("unknown attachment owner".into());
+    }
+    let count = db::count_attachments(&conn, &input.owner_type, input.owner_id).map_err(err)?;
+    if count >= MAX_ATTACH_PER_OWNER {
+        return Err(format!("at most {} images per note", MAX_ATTACH_PER_OWNER));
+    }
+    let (mime, data) = decode_data_url(&input.data_url)?;
+    conn.execute(
+        "INSERT INTO attachments(owner_type, owner_id, mime, width, height, bytes, data, created_at)
+         VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        params![
+            input.owner_type,
+            input.owner_id,
+            mime,
+            input.width.max(0),
+            input.height.max(0),
+            data.len() as i64,
+            data,
+            now_str()
+        ],
+    )
+    .map_err(err)?;
+    Ok(conn.last_insert_rowid())
+}
+
+#[tauri::command]
+pub fn list_attachments(
     state: State<'_, AppState>,
+    owner_type: String,
+    owner_id: i64,
+) -> Result<Vec<Attachment>, String> {
+    let conn = state.conn.lock().map_err(err)?;
+    db::load_attachments(&conn, &owner_type, owner_id).map_err(err)
+}
+
+#[tauri::command]
+pub fn delete_attachment(state: State<'_, AppState>, id: i64) -> Result<(), String> {
+    let conn = state.conn.lock().map_err(err)?;
+    conn.execute("DELETE FROM attachments WHERE id = ?1", params![id])
+        .map_err(err)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn build_report(state: State<'_, AppState>,
     d0: String,
     d1: String,
     lang: String,

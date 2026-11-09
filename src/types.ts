@@ -24,6 +24,7 @@ export interface Task {
   dueDate: string | null;
   estimateMin: number | null;
   todayMinutes: number;
+  attachCount: number;
   doneAt: string | null;
   createdAt: string;
 }
@@ -40,6 +41,30 @@ export interface Entry {
   note: string;
   startedAt: string | null;
   endedAt: string | null;
+  attachCount: number;
+}
+
+export interface Attachment {
+  id: number;
+  ownerType: string;
+  ownerId: number;
+  mime: string;
+  width: number;
+  height: number;
+  bytes: number;
+  dataUrl: string;
+  createdAt: string;
+}
+
+/** 对话框里还没提交到数据库、或已被标记删除的图片 */
+export interface AttachmentDraft {
+  id?: number;
+  dataUrl: string;
+  mime: string;
+  width: number;
+  height: number;
+  bytes: number;
+  removed?: boolean;
 }
 
 export interface TimerState {

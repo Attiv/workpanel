@@ -1,4 +1,5 @@
 use crate::model::*;
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use chrono::{Datelike, Duration, Local, NaiveDate};
 use rusqlite::{params, Connection, OptionalExtension};
 
@@ -74,6 +75,20 @@ CREATE TABLE IF NOT EXISTS translations (
     en         TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS attachments (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner_type TEXT    NOT NULL,
+    owner_id   INTEGER NOT NULL,
+    mime       TEXT    NOT NULL,
+    width      INTEGER NOT NULL,
+    height     INTEGER NOT NULL,
+    bytes      INTEGER NOT NULL,
+    data       BLOB    NOT NULL,
+    created_at TEXT    NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_attachments_owner ON attachments(owner_type, owner_id);
 "#,
     )
 }
@@ -153,7 +168,8 @@ pub fn load_tasks(conn: &Connection, date: &str) -> rusqlite::Result<Vec<Task>> 
         r#"
 SELECT t.id, t.project_id, p.name, p.color, t.title, t.note, t.status,
        t.planned_date, t.due_date, t.estimate_min, t.created_at, t.done_at,
-       COALESCE((SELECT SUM(e.minutes) FROM entries e WHERE e.task_id = t.id AND e.day = ?1), 0)
+       COALESCE((SELECT SUM(e.minutes) FROM entries e WHERE e.task_id = t.id AND e.day = ?1), 0),
+       (SELECT COUNT(*) FROM attachments a WHERE a.owner_type = 'task' AND a.owner_id = t.id)
 FROM tasks t
 LEFT JOIN projects p ON p.id = t.project_id
 WHERE t.status != 'cancelled'
@@ -176,6 +192,7 @@ ORDER BY CASE t.status WHEN 'doing' THEN 0 WHEN 'todo' THEN 1 WHEN 'done' THEN 2
             created_at: r.get(10)?,
             done_at: r.get(11)?,
             today_minutes: r.get(12)?,
+            attach_count: r.get(13)?,
         })
     })?;
     rows.collect()
@@ -185,7 +202,8 @@ pub fn load_entries(conn: &Connection, date: &str) -> rusqlite::Result<Vec<Entry
     let mut stmt = conn.prepare(
         r#"
 SELECT e.id, e.task_id, e.project_id, p.name, p.color, t.title,
-       e.day, e.minutes, e.note, e.started_at, e.ended_at
+       e.day, e.minutes, e.note, e.started_at, e.ended_at,
+       (SELECT COUNT(*) FROM attachments a WHERE a.owner_type = 'entry' AND a.owner_id = e.id)
 FROM entries e
 LEFT JOIN projects p ON p.id = e.project_id
 LEFT JOIN tasks t ON t.id = e.task_id
@@ -206,9 +224,58 @@ ORDER BY e.started_at IS NULL, e.started_at, e.id
             note: r.get(8)?,
             started_at: r.get(9)?,
             ended_at: r.get(10)?,
+            attach_count: r.get(11)?,
         })
     })?;
     rows.collect()
+}
+
+pub fn load_attachments(
+    conn: &Connection,
+    owner_type: &str,
+    owner_id: i64,
+) -> rusqlite::Result<Vec<Attachment>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, owner_type, owner_id, mime, width, height, bytes, data, created_at
+         FROM attachments WHERE owner_type = ?1 AND owner_id = ?2 ORDER BY id",
+    )?;
+    let rows = stmt.query_map(params![owner_type, owner_id], |r| {
+        let mime: String = r.get(3)?;
+        let data: Vec<u8> = r.get(7)?;
+        Ok(Attachment {
+            id: r.get(0)?,
+            owner_type: r.get(1)?,
+            owner_id: r.get(2)?,
+            data_url: format!("data:{};base64,{}", mime, STANDARD.encode(&data)),
+            mime,
+            width: r.get(4)?,
+            height: r.get(5)?,
+            bytes: r.get(6)?,
+            created_at: r.get(8)?,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn count_attachments(conn: &Connection, owner_type: &str, owner_id: i64) -> rusqlite::Result<i64> {
+    conn.query_row(
+        "SELECT COUNT(*) FROM attachments WHERE owner_type = ?1 AND owner_id = ?2",
+        params![owner_type, owner_id],
+        |r| r.get(0),
+    )
+}
+
+/// 附件挂在多态 owner 上，没法用外键级联，删除主体时手动清。
+pub fn delete_attachments_of(
+    conn: &Connection,
+    owner_type: &str,
+    owner_id: i64,
+) -> rusqlite::Result<()> {
+    conn.execute(
+        "DELETE FROM attachments WHERE owner_type = ?1 AND owner_id = ?2",
+        params![owner_type, owner_id],
+    )?;
+    Ok(())
 }
 
 pub fn load_timer(conn: &Connection) -> rusqlite::Result<Option<TimerState>> {

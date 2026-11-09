@@ -49,6 +49,12 @@ WorkPanel 把这三件事放在一个画面里：
 
 ![任务](docs/tasks.zh.png)
 
+### 备注里可以贴图
+
+任务备注和工时记录的说明都能贴图：在对话框里任意位置 `⌘V` 粘贴截图、把图片文件拖进来，或点 `+` 选文件。缩略图排在输入框下面，点开看大图，悬停出现删除。
+
+图片入库前会把最长边压到 1600px（能塞进体积预算就保留 PNG，否则转 JPEG），一条备注最多 12 张。图片只存在本机，**不会**进入导出的日报——日报始终是纯文字。
+
 ### 日报
 
 选时间范围（今天 / 本周 / 自定义）和语言（中文 / English / 双语），实时生成预览。可以复制、导出 `.md`、导出 `.html`、或直接打印成 PDF。
@@ -98,12 +104,13 @@ WorkPanel 把这三件事放在一个画面里：
 
 设置页里能看到实际路径。想备份就复制这个文件；想换机器就把它拷过去。
 
-数据库结构（4 张业务表）：
+数据库结构（5 张业务表）：
 
 - `projects` — 项目名、颜色、别名（别名用来匹配 Kanri 里的项目前缀）
 - `tasks` — 标题、备注、状态、`planned_date`（拖到哪天）、`due_date`、预估、完成时间
 - `entries` — 工时事实表：哪天、哪个任务、多少分钟、做了什么。**工时只认这张表**，拖动卡片不会改工时
 - `translations` — 中文 → 英文的翻译缓存
+- `attachments` — 备注里贴的图片：挂在任务或记录上，存 mime、尺寸、字节数和 BLOB。入库前已压缩，不会离开本机
 
 ## 从 Kanri 导入
 
@@ -175,6 +182,7 @@ WORKPANEL_DB=/tmp/demo.db ./src-tauri/target/debug/workpanel    # 换一个数�
 WORKPANEL_VIEW=report ./src-tauri/target/debug/workpanel        # 启动直接进某个视图
 WORKPANEL_ZOOM=1.25 ./src-tauri/target/debug/workpanel          # 启动时临时缩放（不写回本地设置）
 WORKPANEL_LANG=en ./src-tauri/target/debug/workpanel            # 以英文界面启动
+WORKPANEL_MODAL=task:12 ./src-tauri/target/debug/workpanel      # 直接打开某个对话框（task:ID / entry:ID）
 ```
 
 ## Windows 构建

@@ -49,6 +49,12 @@ A flat table of every task, filterable by All / Today / Doing / Done, searchable
 
 ![Tasks](docs/tasks.png)
 
+### Notes with screenshots
+
+Notes on tasks and on time entries take text **and images**. Paste a screenshot with `⌘V` / `Ctrl V` anywhere in the dialog, drop an image file on it, or click the `+` tile. Thumbnails sit under the note field: click to view full size, hover to remove.
+
+Images are downscaled to 1600px on the longer edge before they reach the database (PNG kept when it fits, JPEG otherwise), up to 12 per note. They stay on your machine, and they are **not** part of the exported report — the report stays plain text.
+
 ### Report
 
 Pick a range (today / this week / custom) and a language (Chinese / English / bilingual) and the report appears as you go. Copy it, export `.md`, export `.html`, or print straight to PDF.
@@ -98,12 +104,13 @@ Everything is in one SQLite file:
 
 The real path is shown in Settings. To back up, copy the file; to move machines, copy it across.
 
-Schema (four tables that matter):
+Schema (five tables that matter):
 
 - `projects` — name, colour, aliases (aliases are used to match prefixes when importing from Kanri)
 - `tasks` — title, note, status, `planned_date` (the day you dragged it to), `due_date`, estimate, completion time
 - `entries` — the time facts: which day, which task, how many minutes, what you did. **Hours come from this table only**, so dragging cards never changes the report
 - `translations` — Chinese → English cache
+- `attachments` — images pasted into notes: owner (task or entry), mime, dimensions, bytes, blob. Compressed on the way in; never leaves the machine
 
 ## Import from Kanri
 
@@ -175,6 +182,7 @@ WORKPANEL_DB=/tmp/demo.db ./src-tauri/target/debug/workpanel    # use another da
 WORKPANEL_VIEW=report ./src-tauri/target/debug/workpanel        # open on a given view
 WORKPANEL_ZOOM=1.25 ./src-tauri/target/debug/workpanel          # temporary zoom, not persisted
 WORKPANEL_LANG=en ./src-tauri/target/debug/workpanel            # start in English
+WORKPANEL_MODAL=task:12 ./src-tauri/target/debug/workpanel      # open a given dialog (task:ID / entry:ID)
 ```
 
 ## Building on Windows

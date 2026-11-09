@@ -24,6 +24,7 @@ const paths: Record<string, string> = {
   search: "M11 4.2a6.8 6.8 0 1 0 0 13.6 6.8 6.8 0 0 0 0-13.6zM16.2 16.2 21 21",
   timer: "M12 8.2V13l3.2 1.9M12 3.8a8.2 8.2 0 1 0 0 16.4 8.2 8.2 0 0 0 0-16.4z",
   arrow: "M5 12h13M13 7l5 5-5 5",
+  image: "M4.5 5.5h15v13h-15zM4.5 16l4.6-4.6 3.4 3.4 2.4-2.4 4.6 4.6M15.6 9.3h.01",
 };
 
 const filled = new Set(["play", "stop"]);

@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  Attachment,
   Entry,
   EntryInput,
   ImportResult,
@@ -49,6 +50,19 @@ export const addEntry = (entry: EntryInput) => invoke<number>("add_entry", { ent
 export const updateEntry = (entry: EntryInput) => invoke<void>("update_entry", { entry });
 
 export const deleteEntry = (id: number) => invoke<void>("delete_entry", { id });
+
+export const addAttachment = (input: {
+  ownerType: "task" | "entry";
+  ownerId: number;
+  dataUrl: string;
+  width: number;
+  height: number;
+}) => invoke<number>("add_attachment", { input });
+
+export const listAttachments = (ownerType: "task" | "entry", ownerId: number) =>
+  invoke<Attachment[]>("list_attachments", { ownerType, ownerId });
+
+export const deleteAttachment = (id: number) => invoke<void>("delete_attachment", { id });
 
 export const buildReport = (d0: string, d1: string, lang: string) =>
   invoke<Report>("build_report", { d0, d1, lang });

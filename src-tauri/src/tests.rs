@@ -340,3 +340,53 @@ fn timer_settles_into_entry() {
     drop(conn);
     let _ = std::fs::remove_file(path);
 }
+
+#[test]
+fn attachments_roundtrip_and_cascade() {
+    let (conn, path) = tmp_db("attach");
+    conn.execute(
+        "INSERT INTO tasks(title, created_at, updated_at) VALUES('截图任务', 'x', 'x')",
+        [],
+    )
+    .unwrap();
+    let task_id = conn.last_insert_rowid();
+
+    let (mime, data) = crate::api::decode_data_url("data:image/png;base64,iVBORw0KGgo=").unwrap();
+    assert_eq!(mime, "image/png");
+    assert_eq!(data.len(), 8);
+
+    conn.execute(
+        "INSERT INTO attachments(owner_type, owner_id, mime, width, height, bytes, data, created_at)
+         VALUES('task', ?1, 'image/png', 320, 200, 8, ?2, 'x')",
+        params![task_id, data],
+    )
+    .unwrap();
+
+    assert_eq!(db::count_attachments(&conn, "task", task_id).unwrap(), 1);
+
+    let list = db::load_attachments(&conn, "task", task_id).unwrap();
+    assert_eq!(list.len(), 1);
+    assert!(list[0].data_url.starts_with("data:image/png;base64,"));
+    assert_eq!(list[0].width, 320);
+    assert_eq!(list[0].height, 200);
+
+    // 任务列表要带出附件数量，卡片上才能显示角标
+    let tasks = db::load_tasks(&conn, "2026-11-09").unwrap();
+    assert_eq!(tasks[0].attach_count, 1);
+
+    db::delete_attachments_of(&conn, "task", task_id).unwrap();
+    assert_eq!(db::count_attachments(&conn, "task", task_id).unwrap(), 0);
+
+    drop(conn);
+    for suffix in ["", "-wal", "-shm"] {
+        let _ = std::fs::remove_file(format!("{}{}", path.display(), suffix));
+    }
+}
+
+#[test]
+fn decode_data_url_rejects_non_images() {
+    assert!(crate::api::decode_data_url("data:text/plain;base64,aGk=").is_err());
+    assert!(crate::api::decode_data_url("not-a-data-url").is_err());
+    assert!(crate::api::decode_data_url("data:image/png,raw").is_err());
+    assert!(crate::api::decode_data_url("data:image/png;base64,").is_err());
+}

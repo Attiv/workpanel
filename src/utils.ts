@@ -114,3 +114,82 @@ export function escapeHtml(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+/** 备注里的图片：最长边压到这个尺寸，足够看清截图里的字 */
+const MAX_EDGE = 1600;
+/** 超过这个体积就不再保 PNG，转 JPEG 省空间 */
+const PNG_BUDGET = 1_400_000;
+
+export interface PickedImage {
+  dataUrl: string;
+  mime: string;
+  width: number;
+  height: number;
+  bytes: number;
+}
+
+function loadImage(blob: Blob): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("image decode failed"));
+    };
+    img.src = url;
+  });
+}
+
+function base64Bytes(dataUrl: string): number {
+  const comma = dataUrl.indexOf(",");
+  if (comma < 0) return 0;
+  return Math.round(((dataUrl.length - comma - 1) * 3) / 4);
+}
+
+/**
+ * 把剪贴板 / 拖入的图片压到可直接存进 SQLite 的体积。
+ * PNG 截图优先保留原格式（字更锐），太大才退回 JPEG。
+ */
+export async function prepareImage(blob: Blob): Promise<PickedImage> {
+  const img = await loadImage(blob);
+  const scale = Math.min(1, MAX_EDGE / Math.max(img.naturalWidth, img.naturalHeight));
+  const width = Math.max(1, Math.round(img.naturalWidth * scale));
+  const height = Math.max(1, Math.round(img.naturalHeight * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas unavailable");
+  // JPEG 没有透明通道，先铺白底，否则透明区域会变黑
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(img, 0, 0, width, height);
+
+  const keepPng = blob.type === "image/png";
+  let dataUrl = keepPng ? canvas.toDataURL("image/png") : canvas.toDataURL("image/jpeg", 0.86);
+  let mime = keepPng ? "image/png" : "image/jpeg";
+  if (dataUrl.length > PNG_BUDGET) {
+    dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+    mime = "image/jpeg";
+  }
+  return { dataUrl, mime, width, height, bytes: base64Bytes(dataUrl) };
+}
+
+/** 从粘贴事件里挑出图片文件，没有就返回空数组 */
+export function imageFilesFromClipboard(e: ClipboardEvent): File[] {
+  const out: File[] = [];
+  const items = e.clipboardData?.items;
+  if (!items) return out;
+  for (const item of items) {
+    if (item.kind === "file" && item.type.startsWith("image/")) {
+      const f = item.getAsFile();
+      if (f) out.push(f);
+    }
+  }
+  return out;
+}

@@ -28,6 +28,7 @@ pub struct Task {
     pub due_date: Option<String>,
     pub estimate_min: Option<i64>,
     pub today_minutes: i64,
+    pub attach_count: i64,
     pub done_at: Option<String>,
     pub created_at: String,
 }
@@ -46,6 +47,31 @@ pub struct Entry {
     pub note: String,
     pub started_at: Option<String>,
     pub ended_at: Option<String>,
+    pub attach_count: i64,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Attachment {
+    pub id: i64,
+    pub owner_type: String,
+    pub owner_id: i64,
+    pub mime: String,
+    pub width: i64,
+    pub height: i64,
+    pub bytes: i64,
+    pub data_url: String,
+    pub created_at: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AttachmentInput {
+    pub owner_type: String,
+    pub owner_id: i64,
+    pub data_url: String,
+    pub width: i64,
+    pub height: i64,
 }
 
 #[derive(Serialize, Clone)]
