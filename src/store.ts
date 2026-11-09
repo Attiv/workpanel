@@ -76,6 +76,7 @@ export async function stepDate(days: number) {
 export async function moveTask(task: Task, column: Column) {
   try {
     if (column === "backlog") {
+      if (state.snap?.timer?.taskId === task.id) await api.stopTimer();
       await api.setTaskStatus(task.id, "todo");
       await api.setTaskPlan(task.id, null);
     } else if (column === "today") {
