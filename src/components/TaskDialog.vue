@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import Icon from "./Icon.vue";
 import ImageAttach from "./ImageAttach.vue";
 import Modal from "./Modal.vue";
@@ -30,6 +30,8 @@ const projects = computed(() => state.snap?.projects ?? []);
 const isEdit = computed(() => !!props.task);
 
 onMounted(async () => {
+  // 焦点停在日期框或按钮上时也要能粘图，所以监听整个窗口而不是某个输入框
+  window.addEventListener("paste", onPaste);
   await nextTick();
   titleEl.value?.focus();
   if (props.task) {
@@ -48,6 +50,8 @@ onMounted(async () => {
     }
   }
 });
+
+onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
 
 function onPaste(e: ClipboardEvent) {
   const files = imageFilesFromClipboard(e);
@@ -107,7 +111,7 @@ async function remove() {
 
 <template>
   <Modal :title="isEdit ? t('dlg.taskEdit') : t('dlg.taskNew')" :width="470" @close="closeModal">
-    <div class="dlg-body" @paste="onPaste" @dragover.prevent @drop="onDrop">
+    <div class="dlg-body" @dragover.prevent @drop="onDrop">
       <label class="field">
         <span class="lab">{{ t("dlg.task") }}</span>
         <input

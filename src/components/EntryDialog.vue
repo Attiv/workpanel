@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as api from "../api";
 import Icon from "./Icon.vue";
 import ImageAttach from "./ImageAttach.vue";
@@ -43,6 +43,7 @@ watch(projectId, () => {
 });
 
 onMounted(async () => {
+  window.addEventListener("paste", onPaste);
   noteEl.value?.focus();
   if (props.entry) {
     try {
@@ -60,6 +61,8 @@ onMounted(async () => {
     }
   }
 });
+
+onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
 
 function onPaste(e: ClipboardEvent) {
   const files = imageFilesFromClipboard(e);
@@ -130,7 +133,7 @@ async function remove() {
 
 <template>
   <Modal :title="isEdit ? t('dlg.entryEdit') : t('dlg.entryNew')" :width="470" @close="closeModal">
-    <div class="dlg-body" @paste="onPaste" @dragover.prevent @drop="onDrop">
+    <div class="dlg-body" @dragover.prevent @drop="onDrop">
       <div class="field">
         <span class="lab">{{ t("dlg.project") }}</span>
         <select v-model="projectId" class="input">
