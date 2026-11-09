@@ -2,10 +2,12 @@
   "name": "workpanel",
   "private": true,
   "version": "1.0.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
+    "build:app": "tauri build --bundles app",
     "preview": "vite preview",
     "tauri": "tauri"
   },

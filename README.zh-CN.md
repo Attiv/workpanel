@@ -1,5 +1,7 @@
 # WorkPanel
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 多项目并行时的任务面板 + 工时记录 + 中英日报生成器。本地优先，数据只存这台机器。
 
 Tauri 2 + Vue 3 写的独立桌面应用，macOS / Windows 都能跑。没有账号、没有云同步、不联网（除非你自己开 AI 翻译）。
@@ -129,6 +131,12 @@ pnpm tauri dev      # 开发模式，热更新
 pnpm tauri build    # 打包 .app / .msi
 ```
 
+新版 macOS 上如果 DMG 打包失败（`hdiutil` 的弃用提示会让 Tauri 的打包脚本出错），只出 `.app` 即可：
+
+```bash
+pnpm build:app      # 等价于 tauri build --bundles app
+```
+
 只调前端时用 `pnpm dev`，浏览器打开 http://localhost:1420 —— 但浏览器里没有 Tauri 的命令通道，界面会报错，只能看样式。
 
 ### 目录
@@ -180,3 +188,7 @@ WORKPANEL_LANG=en ./src-tauri/target/debug/workpanel            # 以英文界�
 - 没有云同步，也没做多设备合并。换机器靠拷数据库文件。
 - 没做系统托盘和全局快捷键，计时靠窗口里的计时条。
 - 任务没有子任务、没有附件，Kanri 那边有但这里刻意省掉，日报用不上。
+
+## 许可
+
+MIT，见 [LICENSE](LICENSE)。随便用、随便改、可以商用，保留版权声明即可。

@@ -1,5 +1,7 @@
 # WorkPanel
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 A task board, a time tracker and a daily-report generator for people who run several projects at once. Local-first: everything lives in one SQLite file on your own machine.
 
 Standalone desktop app built with Tauri 2 + Vue 3. Runs on macOS and Windows. No account, no cloud sync, no network access unless you switch on AI translation.
@@ -129,6 +131,12 @@ pnpm tauri dev      # dev with hot reload
 pnpm tauri build    # bundle .app / .msi
 ```
 
+If DMG bundling fails on a recent macOS (`hdiutil` deprecation warnings break Tauri's helper script), build the `.app` on its own:
+
+```bash
+pnpm build:app      # same as: tauri build --bundles app
+```
+
 For front-end-only work, `pnpm dev` serves http://localhost:1420 — but there is no Tauri command bridge in a browser, so the UI will show an error state. Useful for styles only.
 
 ### Layout
@@ -180,3 +188,7 @@ The database path and the Kanri import path switch to `%APPDATA%` automatically 
 - No cloud sync, no multi-device merge. Moving machines means copying the database file.
 - No tray icon or global hotkey yet; the timer lives in the window.
 - No subtasks or attachments. Kanri has them; reports don't need them, so they were left out on purpose.
+
+## License
+
+MIT — see [LICENSE](LICENSE). Use it, change it, ship it, sell it; just keep the copyright notice.

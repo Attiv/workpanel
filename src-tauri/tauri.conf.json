@@ -38,7 +38,11 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "copyright": "Local-first work panel",
+    "copyright": "Copyright (c) 2026 Attiv",
+    "license": "MIT",
+    "resources": {
+      "../LICENSE": "LICENSE"
+    },
     "category": "Productivity",
     "shortDescription": "Multi-project work log and daily report",
     "longDescription": "Board for planning today's tasks across projects, tracking time, and generating bilingual daily reports."

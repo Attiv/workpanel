@@ -3,6 +3,7 @@ name = "workpanel"
 version = "1.0.0"
 description = "Local-first work panel for multi-project day tracking"
 authors = ["Attiv"]
+license = "MIT"
 edition = "2021"
 rust-version = "1.77"
 
