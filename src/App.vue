@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted } from "vue";
+import { computed, onBeforeUnmount, onMounted, watch } from "vue";
 import Sidebar from "./components/Sidebar.vue";
 import BoardView from "./components/BoardView.vue";
 import ProjectsView from "./components/ProjectsView.vue";
@@ -46,13 +46,42 @@ const elapsed = computed(() => {
 
 let tick = 0;
 
-/** 从睡眠 / 后台切回来时，计时器可能被系统节流过，先立刻补一次跨天检查 */
-function onWake() {
+/**
+ * 自适应节奏，而不是固定每秒：
+ * - 正在计时 → 1 秒（秒表要走针）
+ * - 空闲且在前台 → 5 秒（只为发现跨天）
+ * - 窗口在后台 → 60 秒（切回前台会立刻补一次）
+ */
+function tickDelay(): number {
+  if (document.hidden) return 60_000;
+  if (state.snap?.timer) return 1_000;
+  return 5_000;
+}
+
+function tickOnce() {
+  state.now = Date.now();
   void syncToday();
 }
 
+function schedule() {
+  window.clearTimeout(tick);
+  tick = window.setTimeout(() => {
+    tickOnce();
+    schedule();
+  }, tickDelay());
+}
+
+/** 从睡眠 / 后台切回来时，计时器可能被系统节流过，先立刻补一次跨天检查 */
+function onWake() {
+  tickOnce();
+  schedule();
+}
+
 function onVisible() {
-  if (!document.hidden) void syncToday();
+  if (!document.hidden) {
+    tickOnce();
+    schedule();
+  }
 }
 
 function onKey(e: KeyboardEvent) {
@@ -93,14 +122,16 @@ onMounted(async () => {
   } catch {
     /* ignore */
   }
-  tick = window.setInterval(() => {
-    state.now = Date.now();
-    void syncToday();
-  }, 1000);
+  // 计时开始 / 结束时立刻换挡，不然秒表要等下一次 tick 才动
+  watch(
+    () => !!state.snap?.timer,
+    () => schedule(),
+  );
+  schedule();
 });
 
 onBeforeUnmount(() => {
-  window.clearInterval(tick);
+  window.clearTimeout(tick);
   window.removeEventListener("keydown", onKey);
   window.removeEventListener("focus", onWake);
   document.removeEventListener("visibilitychange", onVisible);
