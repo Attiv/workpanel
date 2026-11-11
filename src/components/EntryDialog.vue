@@ -12,7 +12,7 @@ import {
   syncAttachments,
   toast,
 } from "../store";
-import { imageFilesFromClipboard, parseDuration, shiftISO } from "../utils";
+import { fmtDur, imageFilesFromClipboard, parseDuration, shiftISO } from "../utils";
 import type { AttachmentDraft, Entry, Task } from "../types";
 import { t } from "../i18n";
 
@@ -23,7 +23,7 @@ const projectId = ref<number | null>(
 );
 const taskId = ref<number | null>(props.entry?.taskId ?? props.task?.id ?? null);
 const day = ref(props.entry?.day ?? props.day ?? state.date);
-const minutesText = ref(props.entry ? String(props.entry.minutes) : "");
+const minutesText = ref(props.entry ? fmtDur(props.entry.minutes) : "");
 const note = ref(props.entry?.note ?? "");
 const images = ref<AttachmentDraft[]>([]);
 const attachEl = ref<InstanceType<typeof ImageAttach> | null>(null);
@@ -78,7 +78,7 @@ function onDrop(e: DragEvent) {
 }
 
 function quick(min: number) {
-  minutesText.value = String(min);
+  minutesText.value = fmtDur(min);
   error.value = "";
 }
 
@@ -169,11 +169,11 @@ async function remove() {
             v-model="minutesText"
             class="input"
             style="max-width: 96px"
-            placeholder="45m"
+            placeholder="1h30m"
             @input="error = ''"
           />
-          <button v-for="m in [15, 30, 45, 60, 90]" :key="m" class="chip-btn" @click="quick(m)">
-            {{ m }}m
+          <button v-for="m in [60, 120, 180, 240, 480]" :key="m" class="chip-btn" @click="quick(m)">
+            {{ fmtDur(m) }}
           </button>
         </div>
       </div>
