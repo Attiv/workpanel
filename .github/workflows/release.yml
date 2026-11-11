@@ -1,0 +1,89 @@
+name: Release
+
+# 打 tag 触发（git push origin v1.0.0），或在 Actions 页面手动填 tag 触发
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, e.g. v1.0.0"
+        required: true
+        default: "v1.0.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Apple Silicon + Intel 合成一个 universal 包，只出一个 dmg
+          - platform: macos-latest
+            label: macOS (universal)
+            target: universal-apple-darwin
+            args: --target universal-apple-darwin
+          - platform: windows-latest
+            label: Windows (x64)
+            target: x86_64-pc-windows-msvc
+            args: ""
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: ${{ matrix.target }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 没有开发者证书时做 ad-hoc 签名，否则 Apple Silicon 上会报「应用已损坏」
+          APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && '-' || '' }}
+        with:
+          tagName: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          releaseName: "WorkPanel ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
+          releaseBody: |
+            Task board, time tracker and bilingual daily report for people juggling several projects.
+
+            **Downloads**
+            - **macOS** — `WorkPanel_*_universal.dmg` (Apple Silicon + Intel). Unsigned build: first launch, right-click → Open, or run `xattr -dr com.apple.quarantine /Applications/WorkPanel.app`.
+            - **Windows** — `WorkPanel_*_x64-setup.exe` (recommended) or `WorkPanel_*_x64_en-US.msi`.
+
+            **What it does**
+            - Four-column board; drag a card to Today / Doing / Done, timers start and stop with it.
+            - Manual time entries when you forgot to hit start.
+            - Per-project rollups and a 7-day chart.
+            - Daily report in Chinese, English or both; click a line to copy that line, or copy the whole report. Optional AI translate-and-polish over any OpenAI-compatible endpoint.
+            - Notes accept pasted screenshots.
+            - Everything lives in one local SQLite file. No account, no cloud.
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
