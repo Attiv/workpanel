@@ -12,6 +12,17 @@ Standalone desktop app built with Tauri 2 + Vue 3. Runs on macOS and Windows. No
 
 > Screenshots use made-up demo data, not real projects.
 
+## Download
+
+Grab the latest build from **[Releases](https://github.com/Attiv/workpanel/releases/latest)**:
+
+| Platform | File | Note |
+| --- | --- | --- |
+| macOS (Apple Silicon + Intel) | `WorkPanel_*_universal.dmg` | Unsigned: right-click → Open the first time, or `xattr -dr com.apple.quarantine /Applications/WorkPanel.app` |
+| Windows x64 | `WorkPanel_*_x64-setup.exe` | Recommended; `*.msi` also shipped |
+
+No installer needed if you'd rather build it yourself — see [Build from source](#build-from-source).
+
 ## The problem
 
 When you juggle several projects, you switch between them all day and some tasks only get done days later. At the end of the day you still owe a report: what you did per project, how long it took, one or two sentences each.
@@ -192,6 +203,8 @@ WORKPANEL_MODAL=task:12 ./src-tauri/target/debug/workpanel      # open a given d
 ```
 
 ## Building on Windows
+
+Every tagged release is built on a Windows runner by [the release workflow](.github/workflows/release.yml); the notes below are for building it yourself.
 
 Run `pnpm tauri build` on Windows; you get `.msi` and NSIS `.exe`. You need [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) (preinstalled on Windows 11 and most Windows 10) and the [Rust MSVC toolchain](https://www.rust-lang.org/tools/install).
 

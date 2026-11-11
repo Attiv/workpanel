@@ -12,6 +12,17 @@ Tauri 2 + Vue 3 写的独立桌面应用，macOS / Windows 都能跑。没有账
 
 > 截图里是演示数据，不是真实项目。
 
+## 下载
+
+到 **[Releases](https://github.com/Attiv/workpanel/releases/latest)** 取最新版：
+
+| 平台 | 文件 | 说明 |
+| --- | --- | --- |
+| macOS（Apple Silicon + Intel） | `WorkPanel_*_universal.dmg` | 未签名：首次打开请右键 → 打开，或执行 `xattr -dr com.apple.quarantine /Applications/WorkPanel.app` |
+| Windows x64 | `WorkPanel_*_x64-setup.exe` | 推荐；同时也提供 `.msi` |
+
+不想装包也可以自己从源码编译，见[开发](#开发)。
+
 ## 解决什么问题
 
 同时推进几个项目时，每天在项目之间来回切，任务常常要隔几天才做。到了下班还要交日报：每个项目做了什么、各花了多久、一两句话写清楚。
@@ -192,6 +203,8 @@ WORKPANEL_MODAL=task:12 ./src-tauri/target/debug/workpanel      # 直接打开�
 ```
 
 ## Windows 构建
+
+打 tag 发版时由 [release workflow](.github/workflows/release.yml) 在 Windows 机器上自动构建；下面是本机自己打的说明。
 
 在 Windows 上跑 `pnpm tauri build` 即可，产物是 `.msi` 和 `.exe`（NSIS）。需要先装 [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/)（Win10 1803+ 和 Win11 一般自带）和 [Rust MSVC 工具链](https://www.rust-lang.org/tools/install)。
 
