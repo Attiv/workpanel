@@ -12,7 +12,7 @@ import {
   stepDate,
   type Column,
 } from "../store";
-import { fmtDay, fmtDur, todayISO } from "../utils";
+import { fmtDay, fmtDur } from "../utils";
 import { t } from "../i18n";
 import type { Task } from "../types";
 
@@ -180,7 +180,7 @@ const ghostStyle = computed(() => ({
   transform: `translate3d(${drag.x - drag.ox}px, ${drag.y - drag.oy}px, 0) scale(1.015)`,
 }));
 
-const isToday = computed(() => state.date === todayISO());
+const isToday = computed(() => state.date === state.today);
 </script>
 
 <template>
@@ -194,7 +194,7 @@ const isToday = computed(() => state.date === todayISO());
         <button class="btn icon ghost" :title="t('board.nextDay')" @click="stepDate(1)">
           <Icon name="right" :size="14" />
         </button>
-        <button v-if="!isToday" class="btn ghost today-btn" @click="setDate(todayISO())">
+        <button v-if="!isToday" class="btn ghost today-btn" @click="setDate(state.today)">
           {{ t("board.backToToday") }}
         </button>
       </div>

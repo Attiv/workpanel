@@ -19,6 +19,7 @@ import {
   setView,
   state,
   stopTimerFlow,
+  syncToday,
   type View,
 } from "./store";
 import * as api from "./api";
@@ -45,6 +46,15 @@ const elapsed = computed(() => {
 
 let tick = 0;
 
+/** 从睡眠 / 后台切回来时，计时器可能被系统节流过，先立刻补一次跨天检查 */
+function onWake() {
+  void syncToday();
+}
+
+function onVisible() {
+  if (!document.hidden) void syncToday();
+}
+
 function onKey(e: KeyboardEvent) {
   const mod = e.metaKey || e.ctrlKey;
   if (!mod) return;
@@ -63,6 +73,8 @@ function onKey(e: KeyboardEvent) {
 onMounted(async () => {
   await applyZoom();
   window.addEventListener("keydown", onKey);
+  window.addEventListener("focus", onWake);
+  document.addEventListener("visibilitychange", onVisible);
   await refresh();
   try {
     const info = await api.appInfo();
@@ -83,12 +95,15 @@ onMounted(async () => {
   }
   tick = window.setInterval(() => {
     state.now = Date.now();
+    void syncToday();
   }, 1000);
 });
 
 onBeforeUnmount(() => {
   window.clearInterval(tick);
   window.removeEventListener("keydown", onKey);
+  window.removeEventListener("focus", onWake);
+  document.removeEventListener("visibilitychange", onVisible);
 });
 </script>
 

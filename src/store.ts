@@ -31,6 +31,9 @@ interface ToastItem {
 
 export const state = reactive({
   view: "today" as View,
+  /** 真正的「今天」，跨天时由 syncToday() 推进 */
+  today: todayISO(),
+  /** 当前查看的日期，默认跟着 today 走，也可以手动翻到别的日子 */
   date: todayISO(),
   snap: null as Snapshot | null,
   loading: true,
@@ -64,6 +67,25 @@ export async function refresh() {
 
 export function setView(view: View) {
   state.view = view;
+}
+
+/**
+ * 跨天检查。应用常驻时 `date` 只在启动那一刻算过，过了午夜会停在昨天：
+ * 新建任务还写昨天、昨天的「今天」也不让位。这里由计时器每秒调一次，
+ * 窗口重新获得焦点时也会调（合盖过夜醒来同样能补上）。
+ *
+ * 只有用户当前正看着「今天」时才跟着跳到新的一天；翻到历史日期时不打扰。
+ */
+export async function syncToday() {
+  const now = todayISO();
+  if (now === state.today) return false;
+  const following = state.date === state.today;
+  state.today = now;
+  if (!following) return false;
+  state.date = now;
+  await refresh();
+  toast(t("toast.newDay", { day: now.slice(5) }));
+  return true;
 }
 
 export async function setDate(date: string) {

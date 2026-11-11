@@ -237,6 +237,7 @@ const zh: Table = {
   "toast.projectUpdated": "项目已更新",
   "toast.projectDeleted": "项目已删除",
   "toast.settingsSaved": "设置已保存",
+  "toast.newDay": "已经跨天，今天从 {day} 重新开始",
 
   "date.overdue": "逾期 {n} 天",
   "date.dueToday": "今天到期",
@@ -454,6 +455,7 @@ const en: Table = {
   "toast.projectUpdated": "Project updated",
   "toast.projectDeleted": "Project deleted",
   "toast.settingsSaved": "Settings saved",
+  "toast.newDay": "A new day has started — today is now {day}",
 
   "date.overdue": "{n}d overdue",
   "date.dueToday": "Due today",
