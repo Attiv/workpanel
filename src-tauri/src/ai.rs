@@ -58,17 +58,18 @@ async fn chat(s: &Settings, system: &str, user: &str) -> Result<String, String> 
         .ok_or_else(|| "响应里没有文本内容".to_string())
 }
 
-pub async fn translate_batch(s: &Settings, texts: &[String]) -> Result<Vec<String>, String> {
+pub async fn summarize_batch(s: &Settings, texts: &[String]) -> Result<Vec<String>, String> {
     if texts.is_empty() {
         return Ok(Vec::new());
     }
     let system = "You write the English side of a software engineer's daily report from terse Chinese work-log notes. \
-For each numbered line: translate it into English, then polish that English into natural, professional workplace language. \
-Keep every fact, technical term, product name and number unchanged; don't add anything the note doesn't imply. \
+For each numbered line: write a concise English summary of the work it records — what got done, in the voice of a report entry, not a word-for-word translation. \
+You may drop filler, rephrase or reorder freely so it reads like something written in English in the first place. \
+Keep every fact, technical term, product name and number unchanged; never add anything the note doesn't imply. \
 Use past tense, no trailing period, at most 20 words. \
-Reply with a JSON object only: keys are the input numbers as strings, values are the polished English lines.";
+Reply with a JSON object only: keys are the input numbers as strings, values are the English summaries.";
 
-    let mut user = String::from("Translate and polish each numbered line:\n");
+    let mut user = String::from("Summarize each numbered work note in English for a daily report:\n");
     for (i, t) in texts.iter().enumerate() {
         user.push_str(&format!("{}. {}\n", i + 1, t));
     }

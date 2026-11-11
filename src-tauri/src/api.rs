@@ -457,7 +457,7 @@ pub async fn translate_missing(
                 )
                 .ok();
             match cached {
-                // force = 重新润色：旧译文当没翻过，走一遍新提示词并覆盖缓存
+                // force = 重写英文总结：旧结果当没写过，走一遍新提示词并覆盖缓存
                 Some(en) if !force => result.push(Translated { zh: t.clone(), en }),
                 _ => pending.push(t.clone()),
             }
@@ -465,7 +465,7 @@ pub async fn translate_missing(
     }
 
     for chunk in pending.chunks(20) {
-        let translated = ai::translate_batch(&settings, chunk).await?;
+        let translated = ai::summarize_batch(&settings, chunk).await?;
         let state = app.state::<AppState>();
         let conn = state.conn.lock().map_err(err)?;
         for (i, zh) in chunk.iter().enumerate() {

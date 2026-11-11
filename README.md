@@ -4,7 +4,7 @@
 
 A task board, a time tracker and a daily-report generator for people who run several projects at once. Local-first: everything lives in one SQLite file on your own machine.
 
-Standalone desktop app built with Tauri 2 + Vue 3. Runs on macOS and Windows. No account, no cloud sync, no network access unless you switch on AI translation.
+Standalone desktop app built with Tauri 2 + Vue 3. Runs on macOS and Windows. No account, no cloud sync, no network access unless you switch on AI summaries.
 
 **English** · [中文说明](README.zh-CN.md)
 
@@ -74,7 +74,7 @@ Pick a range (today / this week / custom) and a language (Chinese / English / bi
 
 Click a line to copy just that line — the Chinese line gives you the Chinese, the English line gives you the English. Useful when you only need one bullet for a standup note.
 
-Lines that have no English yet can be sent through **AI translate & polish**, which translates them and rewrites the result into report-ready English.
+Lines that have no English yet can be sent through **AI summary in English**. This is not a word-for-word translation: the model reads the Chinese note and writes the English line a native report would carry — same facts, terms and numbers, English phrasing.
 
 Several entries on the same task collapse into one line: notes are split, de-duplicated, joined with `；` and clipped to 72 characters.
 
@@ -100,7 +100,7 @@ There is also a `− 100% +` control at the bottom of the sidebar. Steps are 80 
 
 ### AI (optional)
 
-Only called when you hit **AI translate & polish** in the report or **Rewrite** in the entry dialog. Any OpenAI-compatible endpoint works:
+Only called when you hit **AI summary in English** in the report or **Rewrite** in the entry dialog. Any OpenAI-compatible endpoint works:
 
 | Field | Example |
 | --- | --- |
@@ -108,7 +108,7 @@ Only called when you hit **AI translate & polish** in the report or **Rewrite** 
 | Model | `deepseek-chat` |
 | API key | `sk-...` |
 
-Translations are cached in the local database, keyed by the Chinese source text, so the same sentence is never translated — or paid for — twice.
+English summaries are cached in the local database, keyed by the Chinese source text, so the same note is never rewritten — or paid for — twice. Hit **AI rewrite summaries** to regenerate the whole report.
 
 ## Data
 
@@ -126,7 +126,7 @@ Schema (five tables that matter):
 - `projects` — name, colour, aliases (aliases are used to match prefixes when importing from Kanri)
 - `tasks` — title, note, status, `planned_date` (the day you dragged it to), `due_date`, estimate, completion time
 - `entries` — the time facts: which day, which task, how many minutes, what you did. **Hours come from this table only**, so dragging cards never changes the report
-- `translations` — Chinese → English cache
+- `translations` — Chinese source → English summary cache
 - `attachments` — images pasted into notes: owner (task or entry), mime, dimensions, bytes, blob. Compressed on the way in; never leaves the machine
 
 ## Import from Kanri
@@ -177,7 +177,7 @@ src-tauri/src/
   db.rs                  schema, queries, snapshot, timer settlement
   api.rs                 Tauri commands
   report.rs              report aggregation and Markdown rendering
-  ai.rs                  OpenAI-compatible batch translate & polish + single-line rewrite
+  ai.rs                  OpenAI-compatible batch English summaries + single-line rewrite
   kanri.rs               Kanri import
   tests.rs               unit tests
 ```
@@ -188,7 +188,7 @@ src-tauri/src/
 cd src-tauri && cargo test
 ```
 
-Covers Kanri import mapping, de-duplication and prefix grouping; report merging and totals; timer settlement into entries; drag-to-plan including reopening a finished task; and English reports reading from the translation cache.
+Covers Kanri import mapping, de-duplication and prefix grouping; report merging and totals; timer settlement into entries; drag-to-plan including reopening a finished task; and English reports reading from the summary cache.
 
 ### Debug environment variables
 

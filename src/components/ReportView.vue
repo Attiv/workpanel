@@ -18,7 +18,7 @@ const d0 = ref(state.date);
 const d1 = ref(state.date);
 const report = ref<Report | null>(null);
 const loading = ref(false);
-const translating = ref(false);
+const summarizing = ref(false);
 
 function weekStart(iso: string): string {
   const d = parseISO(iso);
@@ -96,15 +96,15 @@ const lineCount = computed(() =>
 
 const aiReady = computed(() => !!state.snap?.settings.aiKey);
 
-async function translate(force = false) {
+async function summarizeEn(force = false) {
   const r = report.value;
   if (!r) return;
-  // force 用于「重新润色」：把整份日报的英文都过一遍，覆盖旧缓存
+  // force 用于「重写英文总结」：把整份日报的英文都过一遍，覆盖旧结果
   const texts = force
     ? Array.from(new Set(r.groups.flatMap((g) => g.lines.map((l) => l.text))))
     : r.missingEn;
   if (!texts.length) return;
-  translating.value = true;
+  summarizing.value = true;
   try {
     await api.translateMissing(texts, force);
     await load();
@@ -112,7 +112,7 @@ async function translate(force = false) {
   } catch (e) {
     toast(String(e), "err");
   } finally {
-    translating.value = false;
+    summarizing.value = false;
   }
 }
 
@@ -272,13 +272,13 @@ async function print() {
         v-if="report?.missingEn.length"
         class="btn"
         :class="{ primary: aiReady }"
-        :disabled="translating || !aiReady"
+        :disabled="summarizing || !aiReady"
         :title="aiReady ? t('report.aiTitle') : t('report.aiNeedKey')"
-        @click="translate()"
+        @click="summarizeEn()"
       >
         <Icon name="sparkle" :size="12" />
         {{
-          translating
+          summarizing
             ? t("report.translating")
             : t("report.aiTranslate", { n: report.missingEn.length })
         }}
@@ -286,12 +286,12 @@ async function print() {
       <button
         v-else-if="aiReady && lineCount && lang !== 'zh'"
         class="btn"
-        :disabled="translating"
+        :disabled="summarizing"
         :title="t('report.repolishTitle')"
-        @click="translate(true)"
+        @click="summarizeEn(true)"
       >
         <Icon name="sparkle" :size="12" />
-        {{ translating ? t("report.translating") : t("report.repolish") }}
+        {{ summarizing ? t("report.translating") : t("report.repolish") }}
       </button>
       <button class="btn" :title="t('report.copyZhTitle')" @click="copyLang('zh')">
         {{ t("report.copyZh") }}
