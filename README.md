@@ -37,6 +37,8 @@ Each card has two buttons on hover: **⏱ log time manually** and **▶ start ti
 
 The column header shows `N · est 3h45m · logged 1h25m`, so you can see at a glance whether today's work actually fits.
 
+Leave the app open overnight and the board rolls over on its own: the date follows the calendar day, and anything still sitting in Today drops back into Backlog rather than pretending it's still today's plan.
+
 ### Projects
 
 The list on the left is sorted by this week's hours. The right panel shows this week / today / open tasks / total hours, a 7-day bar chart, and what this project has planned for today.
